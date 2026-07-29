@@ -112,7 +112,7 @@
   .cy-model.is-dealt { animation: cy-deal 900ms cubic-bezier(.5, 0, .2, 1) both; }
   .cy-model > svg.plates { position: absolute; inset: 0; width: 100%; height: 100%; }
   .cy-model .shot {
-    position: absolute; left: 0; top: 16.97%; width: 100%; height: 48.4%;
+    position: absolute; left: 3.2%; top: 16.97%; width: 93.6%; height: 48.4%;
     overflow: hidden; background: #000;
     border-radius: 15.8% / 7.6%;
     box-shadow: 0 0 0 1px var(--fg);
@@ -133,23 +133,28 @@
   }
   .cy-model .row button svg { width: 1.35em; height: 1.35em; }
   .cy-model .dots {
-    position: absolute; left: 50%; translate: -50% 0; top: 83.4%;
+    position: absolute; left: 50%; translate: -50% 0; top: 82.2%;
     display: flex; align-items: center; gap: 0.85em;
   }
   .cy-model .dots button { width: 0.72em; height: 0.72em; border-radius: 999px; border: 1px solid var(--fg); }
+  /* two lines, always — a longer unit description can never reach the barcode */
   .cy-model .blurb {
-    position: absolute; left: 9.5%; right: 9%; top: 86.9%; margin: 0;
-    color: var(--ink); font-size: 0.85em; line-height: 1.35;
+    position: absolute; left: 9.5%; right: 9%; top: 85.6%; margin: 0;
+    color: var(--ink); font-size: 0.82em; line-height: 1.32;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   }
   .cy-model .code {
-    position: absolute; left: 9.5%; right: 9%; top: 91.6%;
-    display: flex; align-items: flex-end; justify-content: space-between;
+    position: absolute; left: 9.5%; right: 9%; top: 91.3%;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 0.7em;
   }
-  .cy-model .code svg { width: 56%; height: auto; }
-  .cy-model .code b {
-    color: var(--ink); font-size: 0.72em; font-weight: 700;
-    text-transform: uppercase; text-align: right; line-height: 1.25;
+  .cy-model .code .barcode { width: 48%; height: auto; flex: none; }
+  .cy-model .spec {
+    margin: 0; display: grid; grid-template-columns: auto auto; gap: 0.05em 0.55em;
+    font-size: 0.6em; line-height: 1.5; color: var(--ink);
   }
+  .cy-model .spec > div { display: contents; }
+  .cy-model .spec dt { text-transform: uppercase; letter-spacing: 0.08em; opacity: .55; }
+  .cy-model .spec dd { margin: 0; font-weight: 700; text-align: right; white-space: nowrap; }
 
   /* ─────────────────────────────── news card ───────────────────────────── */
   /* Figma: card 285x242 @ r45 · logo 23,14 · date top 45 · tag 23,68 (86x27)
@@ -183,7 +188,7 @@
   /* ─────────────────────────────── cpu card ────────────────────────────── */
   /* Figma "Features": 263x188 · go-button 39 at 0,0 · glass 263x168 at y20 (r24,
      pad 12, gap 10) · cpu image 135 square (r20) */
-  .cy-cpu { position: relative; width: 18.786em; }
+  .cy-cpu { position: relative; width: 18.786em; display: block; color: inherit; text-decoration: none; }
   .cy-cpu .glass {
     display: flex; gap: 0; margin-top: 2.357em; padding: 0.857em 0.786em 0.857em 0.857em;
     height: 11.071em; border-radius: 1.714em;
@@ -206,9 +211,15 @@
   .cy-cpu .go {
     position: absolute; left: 0; top: 0; display: grid; place-items: center;
     width: 2.786em; aspect-ratio: 1; border: 0; border-radius: 999px;
-    background: var(--fg); color: var(--ink); cursor: pointer;
+    background: var(--fg); color: var(--ink);
   }
   .cy-cpu .go svg { width: 1.35em; height: 1.35em; }
+
+  /* screen-reader-only announcement for the model swap */
+  .cy-sr {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
 
   /* markers */
   .cy-mark { position: absolute; translate: -50% -50%; display: grid; place-items: center;
@@ -326,6 +337,10 @@
   }
 
   /* compact strip, so the features card costs the frame as little as possible */
+  .cy-flow .cy-model .code { gap: 0.5em; }
+  .cy-flow .cy-model .code .barcode { width: 54%; }
+  .cy-flow .cy-model .spec > div:nth-child(2) { display: none; }
+
   .cy-flow .st-cpu { flex: none; width: 100%; max-width: 330px; font-size: clamp(7.5px, 2.3vw, 10px); }
   .cy-flow .cy-cpu .glass { height: auto; align-items: center; }
   .cy-flow .cy-cpu .chip { width: 5.8em; height: 6.2em; }
@@ -592,7 +607,7 @@
           </div>
           <p class="blurb">Our latest generation security androids, used to protect and serve.</p>
           <div class="code">
-            <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
+            <svg class="barcode" viewBox="0 0 155 30" role="img" aria-label="Product barcode">
               <g fill="#000">
               <rect x="0" width="0.8" height="30" />
               <rect x="3.5" width="2.1" height="30" />
@@ -640,7 +655,11 @@
               <rect x="150.5" width="0.8" height="30" />
               </g>
             </svg>
-            <b>Code<br />2145</b>
+            <dl class="spec">
+              <div><dt>Code</dt><dd>2145</dd></div>
+              <div><dt>Core</dt><dd>S-9</dd></div>
+              <div><dt>Range</dt><dd>12 km</dd></div>
+            </dl>
           </div>
         </article>
         <article class="cy-model" data-card="1" data-pos="1" style="--accent: #5fd9c8">
@@ -668,7 +687,7 @@
           </div>
           <p class="blurb">Perimeter reconnaissance unit with silent pursuit and 360&#176; threat mapping.</p>
           <div class="code">
-            <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
+            <svg class="barcode" viewBox="0 0 155 30" role="img" aria-label="Product barcode">
               <g fill="#000">
               <rect x="0" width="1.4" height="30" />
               <rect x="3.5" width="2.1" height="30" />
@@ -716,7 +735,11 @@
               <rect x="150.5" width="1.4" height="30" />
               </g>
             </svg>
-            <b>Code<br />6390</b>
+            <dl class="spec">
+              <div><dt>Code</dt><dd>6390</dd></div>
+              <div><dt>Core</dt><dd>R-4</dd></div>
+              <div><dt>Range</dt><dd>30 km</dd></div>
+            </dl>
           </div>
         </article>
         <article class="cy-model" data-card="2" data-pos="2" style="--accent: #b79cff">
@@ -744,7 +767,7 @@
           </div>
           <p class="blurb">Close-protection android tuned for crowd density and rapid extraction.</p>
           <div class="code">
-            <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
+            <svg class="barcode" viewBox="0 0 155 30" role="img" aria-label="Product barcode">
               <g fill="#000">
               <rect x="0" width="1.4" height="30" />
               <rect x="3.5" width="0.8" height="30" />
@@ -792,7 +815,11 @@
               <rect x="150.5" width="1.4" height="30" />
               </g>
             </svg>
-            <b>Code<br />8874</b>
+            <dl class="spec">
+              <div><dt>Code</dt><dd>8874</dd></div>
+              <div><dt>Core</dt><dd>K-2</dd></div>
+              <div><dt>Range</dt><dd>6 km</dd></div>
+            </dl>
           </div>
         </article>
       </div>
@@ -811,19 +838,19 @@
         <button class="cta" type="button">Read More</button>
       </article>
 
-      <article class="cy-cpu st-cpu">
+      <a class="cy-cpu st-cpu" href="#models" data-product-link>
         <div class="glass">
           <div class="txt">
-            <h3>Highest CPU capacity in the market</h3>
-            <span class="mini">Read More</span>
+            <h3 data-feature>Highest CPU capacity in the market</h3>
+            <span class="mini" data-cta>View Model S712X</span>
           </div>
           <i class="chip" role="img" aria-label="Circuit board with a Cypher processor"></i>
         </div>
-        <button class="go" type="button" aria-label="Read more about CPU capacity">
+        <span class="go" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </button>
-      </article>
+        </span>
+      </a>
     </div>
   </div>
 
@@ -897,7 +924,7 @@
             </div>
             <p class="blurb">Our latest generation security androids, used to protect and serve.</p>
             <div class="code">
-              <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
+              <svg class="barcode" viewBox="0 0 155 30" role="img" aria-label="Product barcode">
                 <g fill="#000">
               <rect x="0" width="0.8" height="30" />
               <rect x="3.5" width="2.1" height="30" />
@@ -945,7 +972,11 @@
               <rect x="150.5" width="0.8" height="30" />
                 </g>
               </svg>
-              <b>Code<br />2145</b>
+              <dl class="spec">
+              <div><dt>Code</dt><dd>2145</dd></div>
+              <div><dt>Core</dt><dd>S-9</dd></div>
+              <div><dt>Range</dt><dd>12 km</dd></div>
+            </dl>
             </div>
           </article>
           <article class="cy-model" data-card="1" data-pos="1" style="--accent: #5fd9c8">
@@ -973,7 +1004,7 @@
             </div>
             <p class="blurb">Perimeter reconnaissance unit with silent pursuit and 360&#176; threat mapping.</p>
             <div class="code">
-              <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
+              <svg class="barcode" viewBox="0 0 155 30" role="img" aria-label="Product barcode">
                 <g fill="#000">
               <rect x="0" width="1.4" height="30" />
               <rect x="3.5" width="2.1" height="30" />
@@ -1021,7 +1052,11 @@
               <rect x="150.5" width="1.4" height="30" />
                 </g>
               </svg>
-              <b>Code<br />6390</b>
+              <dl class="spec">
+              <div><dt>Code</dt><dd>6390</dd></div>
+              <div><dt>Core</dt><dd>R-4</dd></div>
+              <div><dt>Range</dt><dd>30 km</dd></div>
+            </dl>
             </div>
           </article>
           <article class="cy-model" data-card="2" data-pos="2" style="--accent: #b79cff">
@@ -1049,7 +1084,7 @@
             </div>
             <p class="blurb">Close-protection android tuned for crowd density and rapid extraction.</p>
             <div class="code">
-              <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
+              <svg class="barcode" viewBox="0 0 155 30" role="img" aria-label="Product barcode">
                 <g fill="#000">
               <rect x="0" width="1.4" height="30" />
               <rect x="3.5" width="0.8" height="30" />
@@ -1097,69 +1132,29 @@
               <rect x="150.5" width="1.4" height="30" />
                 </g>
               </svg>
-              <b>Code<br />8874</b>
+              <dl class="spec">
+              <div><dt>Code</dt><dd>8874</dd></div>
+              <div><dt>Core</dt><dd>K-2</dd></div>
+              <div><dt>Range</dt><dd>6 km</dd></div>
+            </dl>
             </div>
-          </article>
-        </div>
-        <div class="row">
-          <h3><span class="swap"><span data-field="name">Model S712X</span></span></h3>
-          <button type="button" data-next aria-label="Next model">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-                 stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 7v10H7" /></svg>
-          </button>
-        </div>
-        <div class="dots" role="tablist" aria-label="Choose a model">
-          <button type="button" class="on" role="tab" data-dot="0" aria-selected="true" aria-label="Model 1 of 3"></button>
-          <button type="button" role="tab" data-dot="1" aria-selected="false" aria-label="Model 2 of 3"></button>
-          <button type="button" role="tab" data-dot="2" aria-selected="false" aria-label="Model 3 of 3"></button>
-        </div>
-        <p class="blurb"><span class="swap"><span data-field="blurb">Our latest generation security androids, used to protect and serve.</span></span></p>
-        <div class="code">
-          <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode" data-barcode>
-            <g fill="#000">
-              <rect x="0" width="2.1" height="30" /><rect x="3.5" width="0.8" height="30" />
-              <rect x="7" width="1.4" height="30" /><rect x="10.5" width="2.1" height="30" />
-              <rect x="14" width="0.8" height="30" /><rect x="17.5" width="1.4" height="30" />
-              <rect x="21" width="2.1" height="30" /><rect x="24.5" width="0.8" height="30" />
-              <rect x="28" width="1.4" height="30" /><rect x="31.5" width="2.1" height="30" />
-              <rect x="35" width="0.8" height="30" /><rect x="38.5" width="1.4" height="30" />
-              <rect x="42" width="2.1" height="30" /><rect x="45.5" width="0.8" height="30" />
-              <rect x="49" width="1.4" height="30" /><rect x="52.5" width="2.1" height="30" />
-              <rect x="56" width="0.8" height="30" /><rect x="59.5" width="1.4" height="30" />
-              <rect x="63" width="2.1" height="30" /><rect x="66.5" width="0.8" height="30" />
-              <rect x="70" width="1.4" height="30" /><rect x="73.5" width="2.1" height="30" />
-              <rect x="77" width="0.8" height="30" /><rect x="80.5" width="1.4" height="30" />
-              <rect x="84" width="2.1" height="30" /><rect x="87.5" width="0.8" height="30" />
-              <rect x="91" width="1.4" height="30" /><rect x="94.5" width="2.1" height="30" />
-              <rect x="98" width="0.8" height="30" /><rect x="101.5" width="1.4" height="30" />
-              <rect x="105" width="2.1" height="30" /><rect x="108.5" width="0.8" height="30" />
-              <rect x="112" width="1.4" height="30" /><rect x="115.5" width="2.1" height="30" />
-              <rect x="119" width="0.8" height="30" /><rect x="122.5" width="1.4" height="30" />
-              <rect x="126" width="2.1" height="30" /><rect x="129.5" width="0.8" height="30" />
-              <rect x="133" width="1.4" height="30" /><rect x="136.5" width="2.1" height="30" />
-              <rect x="140" width="0.8" height="30" /><rect x="143.5" width="1.4" height="30" />
-              <rect x="147" width="2.1" height="30" /><rect x="150.5" width="0.8" height="30" />
-            </g>
-          </svg>
-          <b><span class="swap"><span data-field="code">Code<br />2145</span></span></b>
-        </div>
           </article>
         </div>
       </div>
 
-      <article class="cy-cpu st-cpu">
+      <a class="cy-cpu st-cpu" href="#models" data-product-link>
         <div class="glass">
           <div class="txt">
-            <h3>Highest CPU capacity in the market</h3>
-            <span class="mini">Read More</span>
+            <h3 data-feature>Highest CPU capacity in the market</h3>
+            <span class="mini" data-cta>View Model S712X</span>
           </div>
           <i class="chip" role="img" aria-label="Circuit board with a Cypher processor"></i>
         </div>
-        <button class="go" type="button" aria-label="Read more about CPU capacity">
+        <span class="go" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </button>
-      </article>
+        </span>
+      </a>
     </div>
   </div>
 
@@ -1193,16 +1188,22 @@
       {
         name: "Model S712X",
         eyebrow: "The future is now",
+        feature: "Highest CPU capacity in the market",
+        href: "#model-s712x",
         lines: ["Maximize protection", "and safety with", "Cypher lines cyber", "security androids"]
       },
       {
         name: "Model R408V",
         eyebrow: "Built for the perimeter",
+        feature: "Longest unbroken patrol range",
+        href: "#model-r408v",
         lines: ["Map every threat", "before it breaches", "the fence line with", "Cypher recon units"]
       },
       {
         name: "Model K220D",
         eyebrow: "Made for the crowd",
+        feature: "Fastest extraction in its class",
+        href: "#model-k220d",
         lines: ["Move your people", "through any crowd", "with Cypher close", "protection androids"]
       }
     ];
@@ -1226,6 +1227,18 @@
 
       var flat = scope.querySelector("[data-headline-flat]");
       if (flat) flat.textContent = unit.lines.join(" ");
+
+      var feature = scope.querySelector("[data-feature]");
+      if (feature) feature.textContent = unit.feature;
+
+      var cta = scope.querySelector("[data-cta]");
+      if (cta) cta.textContent = "View " + unit.name;
+
+      var link = scope.querySelector("[data-product-link]");
+      if (link) {
+        link.setAttribute("href", unit.href);
+        link.setAttribute("aria-label", "View " + unit.name + " — " + unit.feature);
+      }
 
       var robots = scope.querySelectorAll(".robot");
       for (var r = 0; r < robots.length; r++) {
@@ -1321,6 +1334,9 @@
       }
 
       layout();
+      var first = UNITS[front];
+      first.index = front;
+      setCopy(scope, first);
       REDUCED.addEventListener("change", function () { REDUCED.matches ? stop() : start(); });
     }
 

@@ -83,7 +83,7 @@
   .cy-model.is-dealt { animation: cy-deal 900ms cubic-bezier(.5, 0, .2, 1) both; }
   .cy-model > svg.plates { position: absolute; inset: 0; width: 100%; height: 100%; }
   .cy-model .shot {
-    position: absolute; left: 0; top: 16.97%; width: 100%; height: 48.4%;
+    position: absolute; left: 3.2%; top: 16.97%; width: 93.6%; height: 48.4%;
     overflow: hidden; background: hsl(var(--ink));
     border-radius: 15.8% / 7.6%;
     box-shadow: 0 0 0 1px hsl(var(--foreground));
@@ -104,23 +104,28 @@
   }
   .cy-model .row button svg { width: 1.35em; height: 1.35em; }
   .cy-model .dots {
-    position: absolute; left: 50%; translate: -50% 0; top: 83.4%;
+    position: absolute; left: 50%; translate: -50% 0; top: 82.2%;
     display: flex; align-items: center; gap: 0.85em;
   }
   .cy-model .dots button { width: 0.72em; height: 0.72em; border-radius: 999px; border: 1px solid hsl(var(--foreground)); }
+  /* two lines, always — a longer unit description can never reach the barcode */
   .cy-model .blurb {
-    position: absolute; left: 9.5%; right: 9%; top: 86.9%; margin: 0;
-    color: hsl(var(--ink)); font-size: 0.85em; line-height: 1.35;
+    position: absolute; left: 9.5%; right: 9%; top: 85.6%; margin: 0;
+    color: hsl(var(--ink)); font-size: 0.82em; line-height: 1.32;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   }
   .cy-model .code {
-    position: absolute; left: 9.5%; right: 9%; top: 91.6%;
-    display: flex; align-items: flex-end; justify-content: space-between;
+    position: absolute; left: 9.5%; right: 9%; top: 91.3%;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 0.7em;
   }
-  .cy-model .code svg { width: 56%; height: auto; }
-  .cy-model .code b {
-    color: hsl(var(--ink)); font-size: 0.72em; font-weight: 700;
-    text-transform: uppercase; text-align: right; line-height: 1.25;
+  .cy-model .code .barcode { width: 48%; height: auto; flex: none; }
+  .cy-model .spec {
+    margin: 0; display: grid; grid-template-columns: auto auto; gap: 0.05em 0.55em;
+    font-size: 0.6em; line-height: 1.5; color: hsl(var(--ink));
   }
+  .cy-model .spec > div { display: contents; }
+  .cy-model .spec dt { text-transform: uppercase; letter-spacing: 0.08em; opacity: .55; }
+  .cy-model .spec dd { margin: 0; font-weight: 700; text-align: right; white-space: nowrap; }
 
   /* ─────────────────────────────── news card ───────────────────────────── */
   /* Figma: card 285x242 @ r45 · logo 23,14 · date top 45 · tag 23,68 (86x27)
@@ -154,7 +159,7 @@
   /* ─────────────────────────────── cpu card ────────────────────────────── */
   /* Figma "Features": 263x188 · go-button 39 at 0,0 · glass 263x168 at y20 (r24,
      pad 12, gap 10) · cpu image 135 square (r20) */
-  .cy-cpu { position: relative; width: 18.786em; }
+  .cy-cpu { position: relative; width: 18.786em; display: block; color: inherit; text-decoration: none; }
   .cy-cpu .glass {
     display: flex; gap: 0; margin-top: 2.357em; padding: 0.857em 0.786em 0.857em 0.857em;
     height: 11.071em; border-radius: 1.714em;
@@ -177,9 +182,15 @@
   .cy-cpu .go {
     position: absolute; left: 0; top: 0; display: grid; place-items: center;
     width: 2.786em; aspect-ratio: 1; border: 0; border-radius: 999px;
-    background: hsl(var(--foreground)); color: hsl(var(--ink)); cursor: pointer;
+    background: hsl(var(--foreground)); color: hsl(var(--ink));
   }
   .cy-cpu .go svg { width: 1.35em; height: 1.35em; }
+
+  /* screen-reader-only announcement for the model swap */
+  .cy-sr {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
 
   /* markers */
   .cy-mark { position: absolute; translate: -50% -50%; display: grid; place-items: center;
@@ -297,6 +308,10 @@
   }
 
   /* compact strip, so the features card costs the frame as little as possible */
+  .cy-flow .cy-model .code { gap: 0.5em; }
+  .cy-flow .cy-model .code .barcode { width: 54%; }
+  .cy-flow .cy-model .spec > div:nth-child(2) { display: none; }
+
   .cy-flow .st-cpu { flex: none; width: 100%; max-width: 330px; font-size: clamp(7.5px, 2.3vw, 10px); }
   .cy-flow .cy-cpu .glass { height: auto; align-items: center; }
   .cy-flow .cy-cpu .chip { width: 5.8em; height: 6.2em; }
@@ -486,8 +501,3 @@
     .cy-stage .cy-mark { transform: none !important; }
     .cy-stage .cy-mark { translate: -50% -50%; }
   }
-
-
-  /* screen-reader-only announcement for the model swap */
-  .cy-sr { position: absolute; width: 1px; height: 1px; overflow: hidden;
-           clip: rect(0 0 0 0); white-space: nowrap; }

@@ -35,6 +35,9 @@ const UNITS = [
     eyebrow: "The future is now",
     lines: ["Maximize protection", "and safety with", "Cypher lines cyber", "security androids"],
     blurb: "Our latest generation security androids, used to protect and serve.",
+    feature: "Highest CPU capacity in the market",
+    href: "#model-s712x",
+    spec: [["Core", "S-9"], ["Range", "12 km"]],
   },
   {
     name: "Model R408V",
@@ -44,6 +47,9 @@ const UNITS = [
     eyebrow: "Built for the perimeter",
     lines: ["Map every threat", "before it breaches", "the fence line with", "Cypher recon units"],
     blurb: "Perimeter reconnaissance unit with silent pursuit and 360° threat mapping.",
+    feature: "Longest unbroken patrol range",
+    href: "#model-r408v",
+    spec: [["Core", "R-4"], ["Range", "30 km"]],
   },
   {
     name: "Model K220D",
@@ -53,6 +59,9 @@ const UNITS = [
     eyebrow: "Made for the crowd",
     lines: ["Move your people", "through any crowd", "with Cypher close", "protection androids"],
     blurb: "Close-protection android tuned for crowd density and rapid extraction.",
+    feature: "Fastest extraction in its class",
+    href: "#model-k220d",
+    spec: [["Core", "K-2"], ["Range", "6 km"]],
   },
 ] as const;
 
@@ -278,18 +287,25 @@ function Deck({ className, style, deck }: Slot & { deck: DeckApi }) {
           <p className="blurb">{u.blurb}</p>
 
           <div className="code">
-            <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
+            <svg className="barcode" viewBox="0 0 155 30" role="img" aria-label="Product barcode">
               <g fill="hsl(var(--ink))">
                 {bars(u.seed).map(({ x, w }) => (
                   <rect key={x} x={x} width={w} height="30" />
                 ))}
               </g>
             </svg>
-            <b>
-              Code
-              <br />
-              {u.code}
-            </b>
+            <dl className="spec">
+              <div>
+                <dt>Code</dt>
+                <dd>{u.code}</dd>
+              </div>
+              {u.spec.map(([label, value]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </article>
       ))}
@@ -315,20 +331,26 @@ function NewsCard({ className, style }: Slot) {
   );
 }
 
-function CpuCard({ className, style }: Slot) {
+function CpuCard({ className, style, front }: Slot & { front: number }) {
+  const unit = UNITS[front];
   return (
-    <article className={`cy-cpu ${className ?? ""}`} style={style}>
+    <a
+      className={`cy-cpu ${className ?? ""}`}
+      style={style}
+      href={unit.href}
+      aria-label={`View ${unit.name} — ${unit.feature}`}
+    >
       <div className="glass">
         <div className="txt">
-          <h3>Highest CPU capacity in the market</h3>
-          <span className="mini">Read More</span>
+          <h3>{unit.feature}</h3>
+          <span className="mini">View {unit.name}</span>
         </div>
         <i className="chip" role="img" aria-label="Circuit board with a Cypher processor" />
       </div>
-      <button className="go" type="button" aria-label="Read more about CPU capacity">
+      <span className="go" aria-hidden="true">
         <ArrowRight strokeWidth={2} />
-      </button>
-    </article>
+      </span>
+    </a>
   );
 }
 
@@ -465,7 +487,7 @@ export default function CypherHero() {
           </h1>
           <NewsCard className="st-news" />
 
-          <CpuCard className="st-cpu" />
+          <CpuCard className="st-cpu" front={desktop.front} />
         </div>
       </div>
 
@@ -501,7 +523,7 @@ export default function CypherHero() {
           <div className="stage-row">
             <Deck className="st-model" deck={mobile} />
           </div>
-          <CpuCard className="st-cpu" />
+          <CpuCard className="st-cpu" front={mobile.front} />
         </div>
       </div>
     </section>

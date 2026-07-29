@@ -1,0 +1,231 @@
+.cy {
+    position: relative;
+    width: 100%;
+    min-height: 100dvh;
+    overflow: hidden;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─────────────────────────────── backdrop (shared) ───────────────────── */
+  .cy-backdrop { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .cy-backdrop .grad {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, hsl(var(--ink)) 0%, hsl(0 0% 13% / 0) 100%);
+  }
+  .cy-backdrop .sheen {
+    position: absolute; inset-inline: 0; top: 0; height: 13.4%;
+    background: linear-gradient(180deg, hsl(var(--plate) / 0.07), transparent);
+  }
+  .cy-backdrop svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* ─────────────────────────────── shared atoms ────────────────────────── */
+  .cy-burger { display: flex; flex-direction: column; justify-content: space-between; }
+  .cy-burger i { display: block; width: 100%; height: 15.8%; border-radius: 99px; background: hsl(var(--foreground)); }
+
+  .cy-search {
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1px solid hsl(var(--foreground) / 0.92);
+    border-radius: 999px;
+    padding: 0.4em 0.6em;
+  }
+  .cy-search input {
+    flex: 1; min-width: 0; background: none; border: 0; outline: 0;
+    color: hsl(var(--foreground)); font-family: inherit;
+    font-size: 1.4em; letter-spacing: 0.04em; padding-inline-start: 0.15em;
+  }
+  .cy-search input::placeholder { color: hsl(var(--foreground)); opacity: 1; }
+  .cy-search button {
+    display: grid; place-items: center; flex: none;
+    aspect-ratio: 1; height: 3.885em;
+    border: 0; border-radius: 999px; background: hsl(var(--foreground)); color: hsl(var(--ink));
+    cursor: pointer;
+  }
+  .cy-search button svg { width: 2em; height: 2em; }
+
+  /* ─────────────────────────────── model card ──────────────────────────── */
+  .cy-model { position: relative; aspect-ratio: 285 / 595; }
+  .cy-model > svg.plates { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .cy-model .shot {
+    position: absolute; left: 0; top: 16.97%; width: 100%; height: 48.4%;
+    overflow: hidden; background: hsl(var(--ink));
+    border-radius: 15.8% / 7.6%;
+    box-shadow: 0 0 0 1px hsl(var(--foreground));
+  }
+  .cy-model .shot .android {
+    position: absolute; left: 2.807%; top: 15.625%; width: 94.035%; height: 83.333%;
+    border-radius: 16.8% / 18.75%; object-fit: cover; display: block;
+  }
+  .cy-model .row {
+    position: absolute; left: 9.5%; right: 6.5%; top: 68.7%; height: 9.6%;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .cy-model .row h3 { margin: 0; font-size: 1.55em; font-weight: 600; line-height: 1; letter-spacing: 0.01em; }
+  .cy-model .row button {
+    display: grid; place-items: center; aspect-ratio: 1; height: 2.6em;
+    border: 1px solid hsl(var(--foreground)); border-radius: 999px; background: none; color: hsl(var(--foreground)); cursor: pointer;
+  }
+  .cy-model .row button svg { width: 1.35em; height: 1.35em; }
+  .cy-model .dots {
+    position: absolute; left: 50%; translate: -50% 0; top: 83.4%;
+    display: flex; align-items: center; gap: 0.85em;
+  }
+  .cy-model .dots span { width: 0.72em; height: 0.72em; border-radius: 999px; border: 1px solid hsl(var(--foreground)); }
+  .cy-model .dots span.on { background: hsl(var(--foreground)); }
+  .cy-model .blurb {
+    position: absolute; left: 9.5%; right: 9%; top: 86.9%; margin: 0;
+    color: hsl(var(--ink)); font-size: 0.85em; line-height: 1.35;
+  }
+  .cy-model .code {
+    position: absolute; left: 9.5%; right: 9%; top: 91.6%;
+    display: flex; align-items: flex-end; justify-content: space-between;
+  }
+  .cy-model .code svg { width: 56%; height: auto; }
+  .cy-model .code b {
+    color: hsl(var(--ink)); font-size: 0.72em; font-weight: 700;
+    text-transform: uppercase; text-align: right; line-height: 1.25;
+  }
+
+  /* ─────────────────────────────── news card ───────────────────────────── */
+  /* Figma: card 285x242 @ r45 · logo 23,14 · date top 45 · tag 23,68 (86x27)
+     · body 23,129 (w237) · Read More button 95,0 (139x27) */
+  .cy-news { position: relative; width: 20.357em; }
+  .cy-news .body {
+    position: relative; width: 100%; height: 17.286em;
+    background: hsl(var(--surface)); border-radius: 3.214em;
+  }
+  .cy-news .mark { position: absolute; left: 1.643em; top: 1em; width: 1.857em; height: auto; color: hsl(var(--foreground)); }
+  .cy-news .date {
+    position: absolute; right: 1.667em; top: 3.75em;
+    font-size: 0.857em; font-weight: 600; color: hsl(var(--muted-foreground));
+  }
+  .cy-news .tag {
+    position: absolute; left: 1.917em; top: 5.667em; height: 2.25em;
+    display: inline-flex; align-items: center; padding-inline: 0.833em;
+    border: 1px solid hsl(var(--foreground)); border-radius: 999px; font-size: 0.857em;
+  }
+  .cy-news p {
+    position: absolute; left: 1.353em; top: 7.588em; width: 13.941em; margin: 0;
+    font-size: 1.214em; line-height: 1.44; letter-spacing: 0.045em;
+  }
+  .cy-news .cta {
+    position: absolute; left: 7.917em; top: 0; width: 11.583em; height: 2.25em;
+    display: grid; place-items: center;
+    border: 0; border-radius: 999px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground));
+    font-family: inherit; font-size: 0.857em; font-weight: 600; cursor: pointer;
+  }
+
+  /* ─────────────────────────────── cpu card ────────────────────────────── */
+  /* Figma "Features": 263x188 · go-button 39 at 0,0 · glass 263x168 at y20 (r24,
+     pad 12, gap 10) · cpu image 135 square (r20) */
+  .cy-cpu { position: relative; width: 18.786em; }
+  .cy-cpu .glass {
+    display: flex; gap: 0; margin-top: 2.357em; padding: 0.857em 0.786em 0.857em 0.857em;
+    height: 11.071em; border-radius: 1.714em;
+    background: hsl(var(--foreground) / 0.13);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  .cy-cpu .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .cy-cpu h3 { margin: 0; font-size: 1.071em; font-weight: 500; line-height: 1.467; }
+  .cy-cpu .mini {
+    margin-top: auto; align-self: flex-start;
+    border: 1px solid hsl(var(--foreground)); border-radius: 999px;
+    font-size: 0.643em; padding: 0.35em 0.9em; white-space: nowrap;
+  }
+  .cy-cpu .chip {
+    width: 9em; height: 9.571em; flex: none;
+    border-radius: 2.143em; object-fit: cover; display: block;
+    box-shadow: 0 0 0 1px hsl(var(--foreground));
+  }
+  .cy-cpu .go {
+    position: absolute; left: 0; top: 0; display: grid; place-items: center;
+    width: 2.786em; aspect-ratio: 1; border: 0; border-radius: 999px;
+    background: hsl(var(--foreground)); color: hsl(var(--ink)); cursor: pointer;
+  }
+  .cy-cpu .go svg { width: 1.35em; height: 1.35em; }
+
+  /* markers */
+  .cy-mark { position: absolute; translate: -50% -50%; display: grid; place-items: center;
+             border-radius: 999px; background: hsl(var(--foreground) / 0.25); }
+  .cy-mark i { display: block; width: 68%; height: 68%; border-radius: 999px; background: hsl(var(--foreground)); }
+
+
+  /* ═════════════════════════════ desktop stage ═════════════════════════ */
+  /* --s is a unitless scale factor set by the inline script below (CSS cannot
+     divide a length by a length to produce a number). Fallback: 1. */
+  .cy-stage-wrap {
+    display: none; position: relative;
+    --s: 1;
+    --vw: 100vw;
+    height: calc(816px * var(--s));
+    min-height: 100dvh;
+  }
+  .cy-stage {
+    position: absolute; left: 50%; top: 0;
+    width: 1440px; height: 816px;
+    transform: translateX(-50%) scale(var(--s));
+    transform-origin: top center;
+  }
+  .cy-stage .bleed {
+    position: absolute; inset-block: 0;
+    left: calc((1440px - var(--vw) / var(--s)) / 2);
+    right: calc((1440px - var(--vw) / var(--s)) / 2);
+  }
+  .cy-stage .robot { position: absolute; left: 900px; top: 109px; width: 540px; height: 707px; object-fit: contain; }
+  .cy-stage .leader { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .cy-stage .hd-burger { position: absolute; left: 73px; top: 45px; width: 27px; height: 19px; }
+  .cy-stage .hd-mark   { position: absolute; left: 164px; top: 45px; width: 26px; height: 26px; color: hsl(var(--foreground)); }
+  .cy-stage .hd-name   { position: absolute; left: 200px; top: 37px; font-size: 25px; font-weight: 700; line-height: 36px; }
+  .cy-stage .hd-nav    { position: absolute; left: 340px; top: 45px; height: 19px;
+                         display: flex; align-items: center; gap: 55px; font-size: 12px; font-weight: 600; }
+  .cy-stage .hd-nav a  { color: inherit; text-decoration: none; }
+  .cy-stage .hd-search { position: absolute; left: 825px; top: 33px; width: 441px; height: 46.85px; font-size: 10px; }
+
+  .cy-stage .st-model  { position: absolute; left: 184px; top: 107px; width: 285px; font-size: 10px; }
+  .cy-stage .st-eyebrow{ position: absolute; left: 540px; top: 158px; font-size: 16px; line-height: 16px; }
+  .cy-stage .st-rule   { position: absolute; left: 540px; top: 180px; width: 190px; height: 1px; background: hsl(var(--foreground)); }
+  .cy-stage .st-h1     { position: absolute; left: 540px; top: 180px; width: 360px; margin: 0;
+                         font-size: 40px; font-weight: 400; line-height: 57.6px; }
+  .cy-stage .st-news   { position: absolute; left: 540px; top: 460px; width: 285px; font-size: 14px; }
+  .cy-stage .st-cpu    { position: absolute; left: 1017px; top: 380px; width: 263px; font-size: 14px; }
+
+  /* ═════════════════════════════ mobile flow ══════════════════════════ */
+  .cy-flow { position: relative; min-height: 100dvh; }
+  .cy-flow .robot {
+    position: absolute; right: -16%; top: 0; width: 82%; max-width: 460px; height: auto;
+    object-fit: contain; opacity: 0.5; pointer-events: none;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 92%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 92%);
+  }
+  .cy-flow .inner {
+    position: relative; width: 100%; max-width: 720px; margin-inline: auto;
+    display: flex; flex-direction: column; gap: 2rem;
+    padding: 1.5rem 1.25rem 4rem;
+  }
+  .cy-flow header { display: flex; align-items: center; gap: 1rem; }
+  .cy-flow header .brand { display: flex; align-items: center; gap: 0.5rem; color: inherit; text-decoration: none; }
+  .cy-flow header .brand-mark { width: 26px; height: 26px; flex: none; }
+  .cy-flow header .brand span { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+  .cy-flow header nav { margin-left: auto; display: flex; gap: 2rem; font-size: 0.75rem; font-weight: 600; }
+  @media (max-width: 639px) { .cy-flow header nav { display: none; } }
+  .cy-flow header nav a { color: inherit; text-decoration: none; }
+  .cy-flow .eyebrow { display: block; font-size: clamp(0.95rem, 3.4vw, 1rem); }
+  .cy-flow .rule { display: block; margin-top: 0.35rem; width: 190px; max-width: 100%; height: 1px; background: hsl(var(--foreground)); }
+  .cy-flow h1 { margin: 0.75rem 0 0; max-width: 9ch; font-size: clamp(2rem, 8.6vw, 2.5rem); font-weight: 400; line-height: 1.44; }
+  .cy-flow .st-model { width: 100%; max-width: 285px; font-size: clamp(9px, 3vw, 10px); }
+  .cy-flow .st-news  { width: 100%; max-width: 420px; font-size: clamp(13px, 3.6vw, 14px); }
+  .cy-flow .st-cpu   { width: 100%; max-width: 380px; font-size: clamp(13px, 3.6vw, 14px); }
+
+  @media (min-width: 640px) {
+    .cy-flow .robot { right: -8%; width: 62%; opacity: 0.6; }
+    .cy-flow h1 { max-width: 14ch; }
+    .cy-flow .inner { padding-inline: 2rem; }
+  }
+  @media (min-width: 1024px) {
+    .cy-stage-wrap { display: block; }
+    .cy-flow { display: none; }
+  }

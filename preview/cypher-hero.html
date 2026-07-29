@@ -1,0 +1,525 @@
+<title>Cypher — Futuristic Robot Hero</title>
+<style>
+  /* Jost (SIL OFL) — inlined so the page never silently falls back. */
+  @font-face {
+    font-family: "Jost";
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: block;
+    src: url("data:font/woff2;base64,__JOST_B64__") format("woff2");
+  }
+
+  :root {
+    --bg: #1e1e1e;
+    --fg: #ffffff;
+    --brand: #7199fe;
+    --plate: #d9d9d9;
+    --surface: #111111;
+    --muted: #6e6e6e;
+    --ink: #000000;
+    --font: "Jost", "Futura", "Avenir Next", "Century Gothic", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+
+  .cy {
+    position: relative;
+    width: 100%;
+    min-height: 100dvh;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─────────────────────────────── backdrop (shared) ───────────────────── */
+  .cy-backdrop { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .cy-backdrop .grad {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #000 0%, rgba(34, 34, 34, 0) 100%);
+  }
+  .cy-backdrop .sheen {
+    position: absolute; inset-inline: 0; top: 0; height: 13.4%;
+    background: linear-gradient(180deg, rgba(217, 217, 217, 0.07), transparent);
+  }
+  .cy-backdrop svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* ─────────────────────────────── shared atoms ────────────────────────── */
+  .cy-burger { display: flex; flex-direction: column; justify-content: space-between; }
+  .cy-burger i { display: block; width: 100%; height: 15.8%; border-radius: 99px; background: var(--fg); }
+
+  .cy-search {
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1px solid rgba(255, 255, 255, 0.92);
+    border-radius: 999px;
+    padding: 0.4em 0.6em;
+  }
+  .cy-search input {
+    flex: 1; min-width: 0; background: none; border: 0; outline: 0;
+    color: var(--fg); font-family: inherit;
+    font-size: 1.4em; letter-spacing: 0.04em; padding-inline-start: 0.15em;
+  }
+  .cy-search input::placeholder { color: var(--fg); opacity: 1; }
+  .cy-search button {
+    display: grid; place-items: center; flex: none;
+    aspect-ratio: 1; height: 3.885em;
+    border: 0; border-radius: 999px; background: var(--fg); color: var(--ink);
+    cursor: pointer;
+  }
+  .cy-search button svg { width: 2em; height: 2em; }
+
+  /* ─────────────────────────────── model card ──────────────────────────── */
+  .cy-model { position: relative; aspect-ratio: 285 / 595; }
+  .cy-model > svg.plates { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .cy-model .shot {
+    position: absolute; left: 0; top: 16.97%; width: 100%; height: 48.4%;
+    overflow: hidden; background: #000;
+    border-radius: 15.8% / 7.6%;
+    box-shadow: 0 0 0 1px var(--fg);
+  }
+  .cy-model .shot .android {
+    position: absolute; left: 2.807%; top: 15.625%; width: 94.035%; height: 83.333%;
+    border-radius: 16.8% / 18.75%; object-fit: cover; display: block;
+  }
+  .cy-model .row {
+    position: absolute; left: 9.5%; right: 6.5%; top: 68.7%; height: 9.6%;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .cy-model .row h3 { margin: 0; font-size: 1.55em; font-weight: 600; line-height: 1; letter-spacing: 0.01em; }
+  .cy-model .row button {
+    display: grid; place-items: center; aspect-ratio: 1; height: 2.6em;
+    border: 1px solid var(--fg); border-radius: 999px; background: none; color: var(--fg); cursor: pointer;
+  }
+  .cy-model .row button svg { width: 1.35em; height: 1.35em; }
+  .cy-model .dots {
+    position: absolute; left: 50%; translate: -50% 0; top: 83.4%;
+    display: flex; align-items: center; gap: 0.85em;
+  }
+  .cy-model .dots span { width: 0.72em; height: 0.72em; border-radius: 999px; border: 1px solid var(--fg); }
+  .cy-model .dots span.on { background: var(--fg); }
+  .cy-model .blurb {
+    position: absolute; left: 9.5%; right: 9%; top: 86.9%; margin: 0;
+    color: var(--ink); font-size: 0.85em; line-height: 1.35;
+  }
+  .cy-model .code {
+    position: absolute; left: 9.5%; right: 9%; top: 91.6%;
+    display: flex; align-items: flex-end; justify-content: space-between;
+  }
+  .cy-model .code svg { width: 56%; height: auto; }
+  .cy-model .code b {
+    color: var(--ink); font-size: 0.72em; font-weight: 700;
+    text-transform: uppercase; text-align: right; line-height: 1.25;
+  }
+
+  /* ─────────────────────────────── news card ───────────────────────────── */
+  /* Figma: card 285x242 @ r45 · logo 23,14 · date top 45 · tag 23,68 (86x27)
+     · body 23,129 (w237) · Read More button 95,0 (139x27) */
+  .cy-news { position: relative; width: 20.357em; }
+  .cy-news .body {
+    position: relative; width: 100%; height: 17.286em;
+    background: var(--surface); border-radius: 3.214em;
+  }
+  .cy-news .mark { position: absolute; left: 1.643em; top: 1em; width: 1.857em; height: auto; color: var(--fg); }
+  .cy-news .date {
+    position: absolute; right: 1.667em; top: 3.75em;
+    font-size: 0.857em; font-weight: 600; color: var(--muted);
+  }
+  .cy-news .tag {
+    position: absolute; left: 1.917em; top: 5.667em; height: 2.25em;
+    display: inline-flex; align-items: center; padding-inline: 0.833em;
+    border: 1px solid var(--fg); border-radius: 999px; font-size: 0.857em;
+  }
+  .cy-news p {
+    position: absolute; left: 1.353em; top: 7.588em; width: 13.941em; margin: 0;
+    font-size: 1.214em; line-height: 1.44; letter-spacing: 0.045em;
+  }
+  .cy-news .cta {
+    position: absolute; left: 7.917em; top: 0; width: 11.583em; height: 2.25em;
+    display: grid; place-items: center;
+    border: 0; border-radius: 999px; background: var(--brand); color: #fff;
+    font-family: inherit; font-size: 0.857em; font-weight: 600; cursor: pointer;
+  }
+
+  /* ─────────────────────────────── cpu card ────────────────────────────── */
+  /* Figma "Features": 263x188 · go-button 39 at 0,0 · glass 263x168 at y20 (r24,
+     pad 12, gap 10) · cpu image 135 square (r20) */
+  .cy-cpu { position: relative; width: 18.786em; }
+  .cy-cpu .glass {
+    display: flex; gap: 0; margin-top: 2.357em; padding: 0.857em 0.786em 0.857em 0.857em;
+    height: 11.071em; border-radius: 1.714em;
+    background: rgba(255, 255, 255, 0.13);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  .cy-cpu .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .cy-cpu h3 { margin: 0; font-size: 1.071em; font-weight: 500; line-height: 1.467; }
+  .cy-cpu .mini {
+    margin-top: auto; align-self: flex-start;
+    border: 1px solid var(--fg); border-radius: 999px;
+    font-size: 0.643em; padding: 0.35em 0.9em; white-space: nowrap;
+  }
+  .cy-cpu .chip {
+    width: 9em; height: 9.571em; flex: none;
+    border-radius: 2.143em; object-fit: cover; display: block;
+    box-shadow: 0 0 0 1px var(--fg);
+  }
+  .cy-cpu .go {
+    position: absolute; left: 0; top: 0; display: grid; place-items: center;
+    width: 2.786em; aspect-ratio: 1; border: 0; border-radius: 999px;
+    background: var(--fg); color: var(--ink); cursor: pointer;
+  }
+  .cy-cpu .go svg { width: 1.35em; height: 1.35em; }
+
+  /* markers */
+  .cy-mark { position: absolute; translate: -50% -50%; display: grid; place-items: center;
+             border-radius: 999px; background: rgba(255, 255, 255, 0.25); }
+  .cy-mark i { display: block; width: 68%; height: 68%; border-radius: 999px; background: var(--fg); }
+
+  /* image placeholders until the Figma assets are dropped in */
+  .ph { background: radial-gradient(120% 90% at 60% 20%, #2b3340 0%, #10141b 55%, #05070a 100%); }
+  .ph-cpu { background: radial-gradient(90% 90% at 50% 50%, #2b6fe0 0%, #123a86 45%, #060f28 100%); }
+
+  /* ═════════════════════════════ desktop stage ═════════════════════════ */
+  /* --s is a unitless scale factor set by the inline script below (CSS cannot
+     divide a length by a length to produce a number). Fallback: 1. */
+  .cy-stage-wrap {
+    display: none; position: relative;
+    --s: 1;
+    --vw: 100vw;
+    height: calc(816px * var(--s));
+    min-height: 100dvh;
+  }
+  .cy-stage {
+    position: absolute; left: 50%; top: 0;
+    width: 1440px; height: 816px;
+    transform: translateX(-50%) scale(var(--s));
+    transform-origin: top center;
+  }
+  .cy-stage .bleed {
+    position: absolute; inset-block: 0;
+    left: calc((1440px - var(--vw) / var(--s)) / 2);
+    right: calc((1440px - var(--vw) / var(--s)) / 2);
+  }
+  .cy-stage .robot { position: absolute; left: 900px; top: 109px; width: 540px; height: 707px; object-fit: contain; }
+  .cy-stage .leader { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .cy-stage .hd-burger { position: absolute; left: 73px; top: 45px; width: 27px; height: 19px; }
+  .cy-stage .hd-mark   { position: absolute; left: 164px; top: 45px; width: 26px; height: 26px; color: var(--fg); }
+  .cy-stage .hd-name   { position: absolute; left: 200px; top: 37px; font-size: 25px; font-weight: 700; line-height: 36px; }
+  .cy-stage .hd-nav    { position: absolute; left: 340px; top: 45px; height: 19px;
+                         display: flex; align-items: center; gap: 55px; font-size: 12px; font-weight: 600; }
+  .cy-stage .hd-nav a  { color: inherit; text-decoration: none; }
+  .cy-stage .hd-search { position: absolute; left: 825px; top: 33px; width: 441px; height: 46.85px; font-size: 10px; }
+
+  .cy-stage .st-model  { position: absolute; left: 184px; top: 107px; width: 285px; font-size: 10px; }
+  .cy-stage .st-eyebrow{ position: absolute; left: 540px; top: 158px; font-size: 16px; line-height: 16px; }
+  .cy-stage .st-rule   { position: absolute; left: 540px; top: 180px; width: 190px; height: 1px; background: var(--fg); }
+  .cy-stage .st-h1     { position: absolute; left: 540px; top: 180px; width: 360px; margin: 0;
+                         font-size: 40px; font-weight: 400; line-height: 57.6px; }
+  .cy-stage .st-news   { position: absolute; left: 540px; top: 460px; width: 285px; font-size: 14px; }
+  .cy-stage .st-cpu    { position: absolute; left: 1017px; top: 380px; width: 263px; font-size: 14px; }
+
+  /* ═════════════════════════════ mobile flow ══════════════════════════ */
+  .cy-flow { position: relative; min-height: 100dvh; }
+  .cy-flow .robot {
+    position: absolute; right: -16%; top: 0; width: 82%; max-width: 460px; height: auto;
+    object-fit: contain; opacity: 0.5; pointer-events: none;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 92%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 92%);
+  }
+  .cy-flow .inner {
+    position: relative; width: 100%; max-width: 720px; margin-inline: auto;
+    display: flex; flex-direction: column; gap: 2rem;
+    padding: 1.5rem 1.25rem 4rem;
+  }
+  .cy-flow header { display: flex; align-items: center; gap: 1rem; }
+  .cy-flow header .brand { display: flex; align-items: center; gap: 0.5rem; color: inherit; text-decoration: none; }
+  .cy-flow header .brand span { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+  .cy-flow header nav { margin-left: auto; display: flex; gap: 2rem; font-size: 0.75rem; font-weight: 600; }
+  @media (max-width: 639px) { .cy-flow header nav { display: none; } }
+  .cy-flow header nav a { color: inherit; text-decoration: none; }
+  .cy-flow .eyebrow { display: block; font-size: clamp(0.95rem, 3.4vw, 1rem); }
+  .cy-flow .rule { display: block; margin-top: 0.35rem; width: 190px; max-width: 100%; height: 1px; background: var(--fg); }
+  .cy-flow h1 { margin: 0.75rem 0 0; max-width: 9ch; font-size: clamp(2rem, 8.6vw, 2.5rem); font-weight: 400; line-height: 1.44; }
+  .cy-flow .st-model { width: 100%; max-width: 285px; font-size: clamp(9px, 3vw, 10px); }
+  .cy-flow .st-news  { width: 100%; max-width: 420px; font-size: clamp(13px, 3.6vw, 14px); }
+  .cy-flow .st-cpu   { width: 100%; max-width: 380px; font-size: clamp(13px, 3.6vw, 14px); }
+
+  @media (min-width: 640px) {
+    .cy-flow .robot { right: -8%; width: 62%; opacity: 0.6; }
+    .cy-flow h1 { max-width: 14ch; }
+    .cy-flow .inner { padding-inline: 2rem; }
+  }
+  @media (min-width: 1024px) {
+    .cy-stage-wrap { display: block; }
+    .cy-flow { display: none; }
+  }
+</style>
+
+<section class="cy">
+  <!-- ══════════════════════════════ desktop ══════════════════════════════ -->
+  <div class="cy-stage-wrap">
+    <div class="cy-stage">
+      <div class="bleed">
+        <div class="cy-backdrop">
+          <div class="grad"></div>
+          <div class="sheen"></div>
+          <svg viewBox="0 0 1440 816" preserveAspectRatio="none" stroke="#fff" stroke-opacity=".16"
+               stroke-width="1" vector-effect="non-scaling-stroke" aria-hidden="true">
+            <line x1="600" y1="-40" x2="20" y2="700" />
+            <line x1="900" y1="-40" x2="320" y2="700" />
+            <line x1="1290" y1="-40" x2="710" y2="700" />
+            <line x1="-40" y1="120" x2="700" y2="860" />
+            <line x1="620" y1="-40" x2="1440" y2="700" />
+          </svg>
+        </div>
+      </div>
+
+      <img class="robot" src="__ROBOT__" alt="Cypher cyber-security android" />
+
+      <span class="cy-mark" style="left:966px;top:171px;width:25px;height:25px"><i></i></span>
+      <span class="cy-mark" style="left:1244px;top:225px;width:25px;height:25px"><i></i></span>
+      <span class="cy-mark" style="left:1046px;top:679px;width:25px;height:25px"><i></i></span>
+      <svg class="leader" viewBox="0 0 1440 816" aria-hidden="true">
+        <line x1="1244" y1="225" x2="1152" y2="392" stroke="#fff" stroke-opacity=".65" />
+      </svg>
+
+      <span class="cy-burger hd-burger"><i></i><i></i><i></i></span>
+      <svg class="hd-mark" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+        <use href="#cypher-mark" />
+      </svg>
+      <span class="hd-name">Cypher</span>
+      <nav class="hd-nav"><a href="#models">Models</a><a href="#about">About us</a></nav>
+
+      <form class="cy-search hd-search" onsubmit="return false">
+        <input type="search" placeholder="Search" aria-label="Search" />
+        <button type="submit" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10" /></svg>
+        </button>
+      </form>
+
+      <article class="cy-model st-model">
+        <svg class="plates" viewBox="0 0 285 595" aria-hidden="true">
+          <path d="M45 1h65c28 0 33 51 68 51h61a44 44 0 0 1 44 44v453a44 44 0 0 1-44 44H45a44 44 0 0 1-44-44V45A44 44 0 0 1 45 1Z"
+                fill="#d9d9d9" stroke="#fff" stroke-width="2" />
+          <path d="M45 46.5h65c28 0 33 51 68 51h61a44.5 44.5 0 0 1 44.5 44.5v325H.5V91A44.5 44.5 0 0 1 45 46.5Z"
+                fill="#7199fe" stroke="#fff" stroke-width="1" />
+        </svg>
+        <div class="shot"><img class="android" src="__ANDROID__" alt="Cypher security android, model S712X" /></div>
+        <div class="row">
+          <h3>Model S712X</h3>
+          <button type="button" aria-label="View model S712X">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                 stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 7v10H7" /></svg>
+          </button>
+        </div>
+        <div class="dots"><span class="on"></span><span></span><span></span></div>
+        <p class="blurb">Our latest generation security androids, used to protect and serve.</p>
+        <div class="code">
+          <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
+            <g fill="#000">
+              <rect x="0"   width="2.1" height="30" /><rect x="3.5"  width="0.8" height="30" />
+              <rect x="7"   width="1.4" height="30" /><rect x="10.5" width="2.1" height="30" />
+              <rect x="14"  width="0.8" height="30" /><rect x="17.5" width="1.4" height="30" />
+              <rect x="21"  width="2.1" height="30" /><rect x="24.5" width="0.8" height="30" />
+              <rect x="28"  width="1.4" height="30" /><rect x="31.5" width="2.1" height="30" />
+              <rect x="35"  width="0.8" height="30" /><rect x="38.5" width="1.4" height="30" />
+              <rect x="42"  width="2.1" height="30" /><rect x="45.5" width="0.8" height="30" />
+              <rect x="49"  width="1.4" height="30" /><rect x="52.5" width="2.1" height="30" />
+              <rect x="56"  width="0.8" height="30" /><rect x="59.5" width="1.4" height="30" />
+              <rect x="63"  width="2.1" height="30" /><rect x="66.5" width="0.8" height="30" />
+              <rect x="70"  width="1.4" height="30" /><rect x="73.5" width="2.1" height="30" />
+              <rect x="77"  width="0.8" height="30" /><rect x="80.5" width="1.4" height="30" />
+              <rect x="84"  width="2.1" height="30" /><rect x="87.5" width="0.8" height="30" />
+              <rect x="91"  width="1.4" height="30" /><rect x="94.5" width="2.1" height="30" />
+              <rect x="98"  width="0.8" height="30" /><rect x="101.5" width="1.4" height="30" />
+              <rect x="105" width="2.1" height="30" /><rect x="108.5" width="0.8" height="30" />
+              <rect x="112" width="1.4" height="30" /><rect x="115.5" width="2.1" height="30" />
+              <rect x="119" width="0.8" height="30" /><rect x="122.5" width="1.4" height="30" />
+              <rect x="126" width="2.1" height="30" /><rect x="129.5" width="0.8" height="30" />
+              <rect x="133" width="1.4" height="30" /><rect x="136.5" width="2.1" height="30" />
+              <rect x="140" width="0.8" height="30" /><rect x="143.5" width="1.4" height="30" />
+              <rect x="147" width="2.1" height="30" /><rect x="150.5" width="0.8" height="30" />
+            </g>
+          </svg>
+          <b>Code<br />2145</b>
+        </div>
+      </article>
+
+      <span class="st-eyebrow">The future is now</span>
+      <i class="st-rule"></i>
+      <h1 class="st-h1">Maximize protection and safety with Cypher lines cyber security androids</h1>
+
+      <article class="cy-news st-news">
+        <div class="body">
+          <svg class="mark" viewBox="0 0 26 26" fill="none" aria-hidden="true"><use href="#cypher-mark" /></svg>
+          <span class="date">12.09.2029</span>
+          <span class="tag">News Article</span>
+          <p>How the security space is and will change as android security take over the industry</p>
+        </div>
+        <button class="cta" type="button">Read More</button>
+      </article>
+
+      <article class="cy-cpu st-cpu">
+        <div class="glass">
+          <div class="txt">
+            <h3>Highest CPU capacity in the market</h3>
+            <span class="mini">Read More</span>
+          </div>
+          <img class="chip" src="__CPU__" alt="Circuit board with a Cypher processor" />
+        </div>
+        <button class="go" type="button" aria-label="Read more about CPU capacity">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </button>
+      </article>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════ mobile ══════════════════════════════ -->
+  <div class="cy-flow">
+    <div class="cy-backdrop">
+      <div class="grad"></div>
+      <div class="sheen"></div>
+      <svg viewBox="0 0 1440 816" preserveAspectRatio="none" stroke="#fff" stroke-opacity=".16"
+           stroke-width="1" vector-effect="non-scaling-stroke" aria-hidden="true">
+        <line x1="600" y1="-40" x2="20" y2="700" />
+        <line x1="900" y1="-40" x2="320" y2="700" />
+        <line x1="-40" y1="120" x2="700" y2="860" />
+      </svg>
+    </div>
+    <img class="robot" src="__ROBOT__" alt="" aria-hidden="true" />
+
+    <div class="inner">
+      <header>
+        <span class="cy-burger" style="width:27px;height:19px;flex:none"><i></i><i></i><i></i></span>
+        <a class="brand" href="/">
+          <svg viewBox="0 0 26 26" fill="none" style="width:26px;height:26px" aria-hidden="true"><use href="#cypher-mark" /></svg>
+          <span>Cypher</span>
+        </a>
+        <nav><a href="#models">Models</a><a href="#about">About us</a></nav>
+      </header>
+
+      <form class="cy-search" style="font-size:10px" onsubmit="return false">
+        <input type="search" placeholder="Search" aria-label="Search" />
+        <button type="submit" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10" /></svg>
+        </button>
+      </form>
+
+      <div>
+        <span class="eyebrow">The future is now</span>
+        <i class="rule"></i>
+        <h1>Maximize protection and safety with Cypher lines cyber security androids</h1>
+      </div>
+
+      <article class="cy-model st-model">
+        <svg class="plates" viewBox="0 0 285 595" aria-hidden="true">
+          <path d="M45 1h65c28 0 33 51 68 51h61a44 44 0 0 1 44 44v453a44 44 0 0 1-44 44H45a44 44 0 0 1-44-44V45A44 44 0 0 1 45 1Z"
+                fill="#d9d9d9" stroke="#fff" stroke-width="2" />
+          <path d="M45 46.5h65c28 0 33 51 68 51h61a44.5 44.5 0 0 1 44.5 44.5v325H.5V91A44.5 44.5 0 0 1 45 46.5Z"
+                fill="#7199fe" stroke="#fff" stroke-width="1" />
+        </svg>
+        <div class="shot"><img class="android" src="__ANDROID__" alt="Cypher security android, model S712X" /></div>
+        <div class="row">
+          <h3>Model S712X</h3>
+          <button type="button" aria-label="View model S712X">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                 stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 7v10H7" /></svg>
+          </button>
+        </div>
+        <div class="dots"><span class="on"></span><span></span><span></span></div>
+        <p class="blurb">Our latest generation security androids, used to protect and serve.</p>
+        <div class="code">
+          <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
+            <g fill="#000">
+              <rect x="0" width="2.1" height="30" /><rect x="3.5" width="0.8" height="30" />
+              <rect x="7" width="1.4" height="30" /><rect x="10.5" width="2.1" height="30" />
+              <rect x="14" width="0.8" height="30" /><rect x="17.5" width="1.4" height="30" />
+              <rect x="21" width="2.1" height="30" /><rect x="24.5" width="0.8" height="30" />
+              <rect x="28" width="1.4" height="30" /><rect x="31.5" width="2.1" height="30" />
+              <rect x="35" width="0.8" height="30" /><rect x="38.5" width="1.4" height="30" />
+              <rect x="42" width="2.1" height="30" /><rect x="45.5" width="0.8" height="30" />
+              <rect x="49" width="1.4" height="30" /><rect x="52.5" width="2.1" height="30" />
+              <rect x="56" width="0.8" height="30" /><rect x="59.5" width="1.4" height="30" />
+              <rect x="63" width="2.1" height="30" /><rect x="66.5" width="0.8" height="30" />
+              <rect x="70" width="1.4" height="30" /><rect x="73.5" width="2.1" height="30" />
+              <rect x="77" width="0.8" height="30" /><rect x="80.5" width="1.4" height="30" />
+              <rect x="84" width="2.1" height="30" /><rect x="87.5" width="0.8" height="30" />
+              <rect x="91" width="1.4" height="30" /><rect x="94.5" width="2.1" height="30" />
+              <rect x="98" width="0.8" height="30" /><rect x="101.5" width="1.4" height="30" />
+              <rect x="105" width="2.1" height="30" /><rect x="108.5" width="0.8" height="30" />
+              <rect x="112" width="1.4" height="30" /><rect x="115.5" width="2.1" height="30" />
+              <rect x="119" width="0.8" height="30" /><rect x="122.5" width="1.4" height="30" />
+              <rect x="126" width="2.1" height="30" /><rect x="129.5" width="0.8" height="30" />
+              <rect x="133" width="1.4" height="30" /><rect x="136.5" width="2.1" height="30" />
+              <rect x="140" width="0.8" height="30" /><rect x="143.5" width="1.4" height="30" />
+              <rect x="147" width="2.1" height="30" /><rect x="150.5" width="0.8" height="30" />
+            </g>
+          </svg>
+          <b>Code<br />2145</b>
+        </div>
+      </article>
+
+      <article class="cy-news st-news">
+        <div class="body">
+          <svg class="mark" viewBox="0 0 26 26" fill="none" aria-hidden="true"><use href="#cypher-mark" /></svg>
+          <span class="date">12.09.2029</span>
+          <span class="tag">News Article</span>
+          <p>How the security space is and will change as android security take over the industry</p>
+        </div>
+        <button class="cta" type="button">Read More</button>
+      </article>
+
+      <article class="cy-cpu st-cpu">
+        <div class="glass">
+          <div class="txt">
+            <h3>Highest CPU capacity in the market</h3>
+            <span class="mini">Read More</span>
+          </div>
+          <img class="chip" src="__CPU__" alt="Circuit board with a Cypher processor" />
+        </div>
+        <button class="go" type="button" aria-label="Read more about CPU capacity">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </button>
+      </article>
+    </div>
+  </div>
+
+  <!-- shared logo symbol -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="cypher-mark" viewBox="0 0 26 26">
+      <g clip-path="url(#cypher-mark-clip)">
+<path d="M8.67723 10.3984C8.69838 10.5031 8.74917 10.5994 8.82534 10.675L12.617 14.4666C12.7228 14.5724 12.8614 14.6253 13 14.6253C13.1386 14.6253 13.2772 14.5724 13.383 14.4666L17.1746 10.675C17.2508 10.5994 17.3016 10.5031 17.3227 10.3984L18.4008 5.00669L19.4841 0.673458C19.5391 0.451295 19.4492 0.218024 19.2577 0.0910745C19.0683 -0.0348176 18.8187 -0.0284701 18.6335 0.109059L14.4441 3.25054H11.5559L7.36643 0.109059C7.18129 -0.029528 6.93268 -0.0353466 6.74225 0.0910745C6.55076 0.218025 6.46084 0.451295 6.51585 0.673458L7.59601 4.99452L8.67723 10.3984ZM12.0394 6.15717C12.142 6.03181 12.2964 5.95881 12.4583 5.95881H13.5416C13.7035 5.95881 13.858 6.03181 13.9606 6.15717C14.0632 6.28253 14.1045 6.44757 14.0727 6.60679L13.5311 9.31505C13.4803 9.5679 13.2581 9.75039 13 9.75039C12.7418 9.75039 12.5197 9.5679 12.4689 9.31505L11.9272 6.60679C11.8955 6.44757 11.9367 6.28253 12.0394 6.15717Z" fill="currentColor"/>
+<path d="M4.34285 22.3158C4.38199 22.5131 4.52799 22.6723 4.72054 22.7289L10.2165 24.3469L2.61053 13.652L4.34285 22.3158Z" fill="currentColor"/>
+<path d="M21.2784 22.7279C21.471 22.6713 21.6169 22.5121 21.6561 22.3148L23.3883 13.6537L15.785 24.3461L21.2784 22.7279Z" fill="currentColor"/>
+<path d="M25.7473 0.0842057C25.5579 -0.035339 25.3156 -0.0258177 25.1337 0.109067L20.8702 3.30609L19.8577 3.64363L19.4515 5.26959L19.1548 6.75556L20.9114 6.00272C21.1844 5.88371 21.5039 6.01066 21.6234 6.2873C21.7409 6.56183 21.6139 6.88026 21.3388 6.99822L18.8974 8.0445L18.689 9.08893L19.8704 8.69512C20.1561 8.60097 20.4607 8.75331 20.556 9.03736C20.6501 9.32141 20.4967 9.6282 20.2132 9.72236L18.4448 10.3118L18.3851 10.611C18.3216 10.9273 18.1671 11.214 17.9407 11.4409L14.1491 15.2325C13.8423 15.5393 13.4339 15.7086 13.0001 15.7086C12.5664 15.7086 12.158 15.5393 11.8512 15.2325L8.05954 11.4409C7.83314 11.214 7.67868 10.9273 7.61521 10.6121L7.55517 10.3117L5.78708 9.72236C5.50355 9.6282 5.35015 9.32141 5.44431 9.03736C5.53952 8.75331 5.84844 8.6015 6.12986 8.69512L7.31065 9.08873L7.10184 8.04411L4.66143 6.99822C4.38637 6.88027 4.25941 6.56183 4.37684 6.2873C4.49639 6.01066 4.81589 5.88318 5.08884 6.00272L6.84417 6.75497L6.53716 5.21934L6.14295 3.64377L5.1301 3.30609L0.86659 0.109067C0.685682 -0.0268757 0.442355 -0.0363969 0.252983 0.0842057C0.0625538 0.20375 -0.033719 0.428029 0.0107146 0.648604L2.09883 11.092C2.118 11.1118 2.14187 11.1248 2.15834 11.1479L11.8969 24.8416L12.559 25.772C12.6605 25.9154 12.8245 26 13.0001 26C13.1758 26 13.3397 25.9154 13.4413 25.772L14.1028 24.8417L14.1046 24.8412L23.8419 11.1479C23.8582 11.1253 23.8817 11.1126 23.9006 11.0932L25.9896 0.648605C26.034 0.428558 25.9377 0.20375 25.7473 0.0842057ZM11.8565 17.5816C11.7634 17.7641 11.5761 17.8752 11.3751 17.8752C11.3455 17.8752 11.3159 17.8726 11.2863 17.8678L8.03627 17.3261C7.84901 17.2949 7.69244 17.1685 7.62261 16.9929L6.53928 14.2846C6.4557 14.0762 6.50966 13.8371 6.6747 13.6848C6.84079 13.533 7.08095 13.4981 7.28407 13.5991L9.45074 14.6824C9.50258 14.7083 9.55018 14.7427 9.59144 14.784L11.7581 16.9506C11.9242 17.1172 11.9644 17.3722 11.8565 17.5816ZM19.461 14.2846L18.3777 16.9929C18.3078 17.1685 18.1513 17.2949 17.964 17.3261L14.714 17.8678C14.6844 17.8726 14.6548 17.8752 14.6251 17.8752C14.4241 17.8752 14.2379 17.7641 14.1438 17.5816C14.0359 17.3722 14.0761 17.1172 14.2422 16.9506L16.4088 14.784C16.4501 14.7427 16.4977 14.7083 16.5495 14.6824L18.7162 13.5991C18.9183 13.4981 19.1584 13.533 19.3256 13.6848C19.4906 13.8371 19.5446 14.0762 19.461 14.2846Z" fill="currentColor"/>
+</g>
+<defs>
+<clipPath id="cypher-mark-clip">
+<rect width="26" height="26" fill="currentColor"/>
+</clipPath>
+</defs>
+    </symbol>
+  </svg>
+</section>
+
+<script>
+  (function () {
+    var wrap = document.querySelector(".cy-stage-wrap");
+    if (!wrap) return;
+    var fit = function () {
+      var w = wrap.clientWidth || window.innerWidth;
+      wrap.style.setProperty("--s", String(Math.min(w / 1440, 1.3334)));
+      wrap.style.setProperty("--vw", w + "px");
+    };
+    fit();
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(wrap);
+    window.addEventListener("resize", fit, { passive: true });
+  })();
+</script>

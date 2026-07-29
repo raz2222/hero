@@ -52,7 +52,8 @@ const NAV = [
 ] as const;
 
 const SLIDE_MS = 6000;
-const SWAP_MS = 780;
+/** One full edge-turn of the card; the content is exchanged at the halfway point. */
+const TURN_MS = 900;
 
 /** Deterministic bar widths per unit, so every model carries its own code. */
 function bars(seed: number) {
@@ -111,21 +112,30 @@ function ModelCard({ className, style }: Slot) {
   const [swapping, setSwapping] = useState(false);
   const [paused, setPaused] = useState(false);
   const [visible, setVisible] = useState(true);
-  const card = useRef<HTMLElement>(null);
+  const deck = useRef<HTMLDivElement>(null);
+  const busy = useRef(false);
+  const timers = useRef<number[]>([]);
+  const indexRef = useRef(index);
+  indexRef.current = index;
 
   const model = MODELS[index];
 
+  // The card turns on its edge and the content is exchanged at the halfway
+  // point, while it is side-on — so the swap itself is never seen.
   const show = useCallback((next: number) => {
-    setIndex(((next % MODELS.length) + MODELS.length) % MODELS.length);
+    if (busy.current) return;
+    busy.current = true;
     setSwapping(true);
+    timers.current.push(
+      window.setTimeout(() => setIndex(((next % MODELS.length) + MODELS.length) % MODELS.length), TURN_MS / 2),
+      window.setTimeout(() => {
+        setSwapping(false);
+        busy.current = false;
+      }, TURN_MS),
+    );
   }, []);
 
-  // Clear the swap flag once the transition has played out.
-  useEffect(() => {
-    if (!swapping) return;
-    const t = window.setTimeout(() => setSwapping(false), SWAP_MS);
-    return () => window.clearTimeout(t);
-  }, [swapping, index]);
+  useEffect(() => () => timers.current.forEach(window.clearTimeout), []);
 
   // Autoplay yields to the reader: hover, keyboard focus, a hidden tab or a
   // card scrolled out of view all pause it.
@@ -135,9 +145,6 @@ function ModelCard({ className, style }: Slot) {
     return () => window.clearInterval(t);
   }, [reduced, paused, visible, show]);
 
-  const indexRef = useRef(index);
-  indexRef.current = index;
-
   useEffect(() => {
     const onVisibility = () => setPaused(document.hidden);
     document.addEventListener("visibilitychange", onVisibility);
@@ -145,7 +152,7 @@ function ModelCard({ className, style }: Slot) {
   }, []);
 
   useEffect(() => {
-    const el = card.current;
+    const el = deck.current;
     if (!el || !("IntersectionObserver" in window)) return;
     const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: 0.25 });
     io.observe(el);
@@ -153,92 +160,98 @@ function ModelCard({ className, style }: Slot) {
   }, []);
 
   return (
-    <article
-      ref={card}
-      className={`cy-model ${swapping ? "is-swapping" : ""} ${className ?? ""}`}
+    <div
+      ref={deck}
+      className={`deck ${swapping ? "is-dealing" : ""} ${className ?? ""}`}
       style={style}
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
-      <span className="cy-sr" aria-live="polite">
-        {`${model.name} — ${model.blurb}`}
-      </span>
+      {/* the rest of the deck, peeking out behind the live card */}
+      <i className="ghost" aria-hidden="true" />
+      <i className="ghost" aria-hidden="true" />
 
-      <svg className="plates" viewBox="0 0 285 595" aria-hidden="true">
-        <path
-          d="M45 1h65c28 0 33 51 68 51h61a44 44 0 0 1 44 44v453a44 44 0 0 1-44 44H45a44 44 0 0 1-44-44V45A44 44 0 0 1 45 1Z"
-          fill="hsl(var(--plate))"
-          stroke="hsl(var(--foreground))"
-          strokeWidth="2"
-        />
-        <path
-          d="M45 46.5h65c28 0 33 51 68 51h61a44.5 44.5 0 0 1 44.5 44.5v325H.5V91A44.5 44.5 0 0 1 45 46.5Z"
-          fill="hsl(var(--primary))"
-          stroke="hsl(var(--foreground))"
-          strokeWidth="1"
-        />
-      </svg>
-
-      <div className="shot" role="img" aria-label={model.name}>
-        {MODELS.map((m, i) => (
-          <i key={m.code} className={`android ${i === index ? "is-active" : ""}`} data-slide={i} />
-        ))}
-        <i className="scan" aria-hidden="true" />
-      </div>
-
-      <div className="row">
-        <h3>
-          {/* re-keying replays the CSS swap animation — no timers to keep in sync */}
-          <span className="swap">
-            <span key={model.code}>{model.name}</span>
-          </span>
-        </h3>
-        <button type="button" onClick={() => show(index + 1)} aria-label="Next model">
-          <ArrowDownRight strokeWidth={1.6} />
-        </button>
-      </div>
-
-      <div className="dots" role="tablist" aria-label="Choose a model">
-        {MODELS.map((m, i) => (
-          <button
-            key={m.code}
-            type="button"
-            role="tab"
-            className={i === index ? "on" : undefined}
-            aria-selected={i === index}
-            aria-label={`Model ${i + 1} of ${MODELS.length}`}
-            onClick={() => show(i)}
-          />
-        ))}
-      </div>
-
-      <p className="blurb">
-        <span className="swap">
-          <span key={model.code}>{model.blurb}</span>
+      <article className={`cy-model ${swapping ? "is-swapping" : ""}`}>
+        <span className="cy-sr" aria-live="polite">
+          {`${model.name} — ${model.blurb}`}
         </span>
-      </p>
 
-      <div className="code">
-        <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
-          <g fill="hsl(var(--ink))">
-            {bars(model.seed).map(({ x, w }) => (
-              <rect key={x} x={x} width={w} height="30" />
-            ))}
-          </g>
+        <svg className="plates" viewBox="0 0 285 595" aria-hidden="true">
+          <path
+            d="M45 1h65c28 0 33 51 68 51h61a44 44 0 0 1 44 44v453a44 44 0 0 1-44 44H45a44 44 0 0 1-44-44V45A44 44 0 0 1 45 1Z"
+            fill="hsl(var(--plate))"
+            stroke="hsl(var(--foreground))"
+            strokeWidth="2"
+          />
+          <path
+            d="M45 46.5h65c28 0 33 51 68 51h61a44.5 44.5 0 0 1 44.5 44.5v325H.5V91A44.5 44.5 0 0 1 45 46.5Z"
+            fill="hsl(var(--primary))"
+            stroke="hsl(var(--foreground))"
+            strokeWidth="1"
+          />
         </svg>
-        <b>
-          <span className="swap">
-            <span key={model.code}>
-              Code
-              <br />
-              {model.code}
+
+        <div className="shot" role="img" aria-label={model.name}>
+          {MODELS.map((m, i) => (
+            <i key={m.code} className={`android ${i === index ? "is-active" : ""}`} data-slide={i} />
+          ))}
+          <i className="scan" aria-hidden="true" />
+        </div>
+
+        <div className="row">
+          <h3>
+            {/* re-keying replays the CSS swap animation — no timers to keep in sync */}
+            <span className="swap">
+              <span key={model.code}>{model.name}</span>
             </span>
+          </h3>
+          <button type="button" onClick={() => show(index + 1)} aria-label="Next model">
+            <ArrowDownRight strokeWidth={1.6} />
+          </button>
+        </div>
+
+        <div className="dots" role="tablist" aria-label="Choose a model">
+          {MODELS.map((m, i) => (
+            <button
+              key={m.code}
+              type="button"
+              role="tab"
+              className={i === index ? "on" : undefined}
+              aria-selected={i === index}
+              aria-label={`Model ${i + 1} of ${MODELS.length}`}
+              onClick={() => show(i)}
+            />
+          ))}
+        </div>
+
+        <p className="blurb">
+          <span className="swap">
+            <span key={model.code}>{model.blurb}</span>
           </span>
-        </b>
-      </div>
-    </article>
+        </p>
+
+        <div className="code">
+          <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
+            <g fill="hsl(var(--ink))">
+              {bars(model.seed).map(({ x, w }) => (
+                <rect key={x} x={x} width={w} height="30" />
+              ))}
+            </g>
+          </svg>
+          <b>
+            <span className="swap">
+              <span key={model.code}>
+                Code
+                <br />
+                {model.code}
+              </span>
+            </span>
+          </b>
+        </div>
+      </article>
+    </div>
   );
 }
 

@@ -44,8 +44,11 @@ Read off the Figma layers rather than estimated from a screenshot:
 
 ## Model carousel
 
-The product card cycles three units (S712X / R408V / K220D). Each swap changes the photo,
-name, blurb, product code and barcode together. Autoplay runs every 6s and yields to the
+The product card is a deck: two plates peek out behind the live card, and advancing turns
+the whole card on its edge. The content — photo, name, blurb, product code and barcode — is
+exchanged at the halfway point, while the card is side-on and nothing can give the swap
+away. The deck straightens up as it deals, then settles back. Three units cycle:
+S712X / R408V / K220D. Autoplay runs every 6s and yields to the
 reader — hover, keyboard focus, a hidden tab or a card scrolled out of view all pause it.
 Dots are real tabs, and the model name is announced through a polite live region.
 

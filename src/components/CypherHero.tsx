@@ -144,19 +144,30 @@ function RobotLayers({ front, label }: { front: number; label?: string }) {
 function useDeck() {
   const reduced = usePrefersReducedMotion();
   const [front, setFront] = useState(0);
-  const [dealt, setDealt] = useState<number | null>(null);
+  /** Which card is mid-move, and which way: 1 dealt away, -1 drawn back. */
+  const [anim, setAnim] = useState<{ card: number; dir: 1 | -1 } | null>(null);
   const [paused, setPaused] = useState(false);
   const queue = useRef(0);
   const frontRef = useRef(front);
+  const animRef = useRef(anim);
   frontRef.current = front;
+  animRef.current = anim;
 
   const next = useCallback(() => {
-    setDealt((current) => (current === null ? frontRef.current : current));
+    if (animRef.current) return;
+    setAnim({ card: frontRef.current, dir: 1 });
     setFront((f) => (f + 1) % UNITS.length);
   }, []);
 
-  const onDealEnd = useCallback(() => {
-    setDealt(null);
+  const prev = useCallback(() => {
+    if (animRef.current) return;
+    const target = (frontRef.current - 1 + UNITS.length) % UNITS.length;
+    setAnim({ card: target, dir: -1 });
+    setFront(target);
+  }, []);
+
+  const onMoveEnd = useCallback(() => {
+    setAnim(null);
     if (queue.current > 0) {
       queue.current -= 1;
       window.setTimeout(next, 0);
@@ -174,10 +185,10 @@ function useDeck() {
   );
 
   useEffect(() => {
-    if (reduced || paused || dealt !== null) return;
+    if (reduced || paused || anim) return;
     const t = window.setInterval(next, DWELL_MS);
     return () => window.clearInterval(t);
-  }, [reduced, paused, dealt, next]);
+  }, [reduced, paused, anim, next]);
 
   useEffect(() => {
     const onVisibility = () => setPaused(document.hidden);
@@ -187,11 +198,12 @@ function useDeck() {
 
   return {
     front,
-    dealt,
-    dealing: dealt !== null,
+    anim,
+    moving: anim !== null,
     next,
+    prev,
     goTo,
-    onDealEnd,
+    onMoveEnd,
     pause: useCallback(() => setPaused(true), []),
     resume: useCallback(() => setPaused(false), []),
   };
@@ -199,9 +211,13 @@ function useDeck() {
 
 type DeckApi = ReturnType<typeof useDeck>;
 
+/** Past this much travel, a drag becomes a deal rather than a nudge. */
+const SWIPE_PX = 48;
+
 function Deck({ className, style, deck }: Slot & { deck: DeckApi }) {
-  const { front, dealt, dealing, next, goTo, onDealEnd, pause, resume } = deck;
+  const { front, anim, moving, next, prev, goTo, onMoveEnd, pause, resume } = deck;
   const box = useRef<HTMLDivElement>(null);
+  const drag = useRef({ startX: 0, dx: 0, active: false });
 
   useEffect(() => {
     const el = box.current;
@@ -213,19 +229,67 @@ function Deck({ className, style, deck }: Slot & { deck: DeckApi }) {
     return () => io.disconnect();
   }, [pause, resume]);
 
-  // A backgrounded tab throttles timers hard, so the deal is cleaned up on
+  // A backgrounded tab throttles timers hard, so the move is cleaned up on
   // animationend, with a timer only as a safety net.
   useEffect(() => {
-    if (!dealing) return;
-    const t = window.setTimeout(onDealEnd, DEAL_MS + 400);
+    if (!moving) return;
+    const t = window.setTimeout(onMoveEnd, DEAL_MS + 400);
     return () => window.clearTimeout(t);
-  }, [dealing, onDealEnd]);
+  }, [moving, onMoveEnd]);
+
+  // Drag the deck like a real one: the top card follows the finger and, past a
+  // short threshold, is dealt away or drawn back on release.
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const top = () => el.querySelector<HTMLElement>('[data-pos="0"]');
+
+    const move = (e: PointerEvent) => {
+      if (!drag.current.active) return;
+      drag.current.dx = e.clientX - drag.current.startX;
+      const { dx } = drag.current;
+      if (Math.abs(dx) > 4) el.classList.add("is-dragging");
+      const card = top();
+      if (card) {
+        card.style.transform = `translate(${dx * 0.45}px, ${Math.abs(dx) * 0.06}px) rotate(${dx * 0.03}deg)`;
+      }
+    };
+
+    const end = () => {
+      if (!drag.current.active) return;
+      drag.current.active = false;
+      el.classList.remove("is-dragging");
+      const card = top();
+      if (card) card.style.transform = "";
+      const { dx } = drag.current;
+      drag.current.dx = 0;
+      if (dx < -SWIPE_PX) next();
+      else if (dx > SWIPE_PX) prev();
+      else resume();
+    };
+
+    window.addEventListener("pointermove", move, { passive: true });
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+    };
+  }, [next, prev, resume]);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (moving || (e.pointerType === "mouse" && e.button !== 0)) return;
+    drag.current = { startX: e.clientX, dx: 0, active: true };
+    pause();
+  };
 
   return (
     <div
       ref={box}
-      className={`deck ${dealing ? "is-dealing" : ""} ${className ?? ""}`}
+      className={`deck ${moving ? "is-dealing" : ""} ${className ?? ""}`}
       style={style}
+      onPointerDown={onPointerDown}
       onPointerEnter={pause}
       onPointerLeave={resume}
       onFocus={pause}
@@ -238,10 +302,10 @@ function Deck({ className, style, deck }: Slot & { deck: DeckApi }) {
       {UNITS.map((u, i) => (
         <article
           key={u.code}
-          className={`cy-model ${dealt === i ? "is-dealt" : ""}`}
+          className={`cy-model ${anim?.card === i ? (anim.dir === 1 ? "is-dealt" : "is-drawn") : ""}`}
           data-pos={(i - front + UNITS.length) % UNITS.length}
           style={{ "--accent": u.accent } as React.CSSProperties}
-          onAnimationEnd={dealt === i ? onDealEnd : undefined}
+          onAnimationEnd={anim?.card === i ? onMoveEnd : undefined}
         >
           <svg className="plates" viewBox="0 0 285 595" aria-hidden="true">
             <path

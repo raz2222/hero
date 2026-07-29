@@ -81,17 +81,34 @@
            z-index: 1; opacity: .72; filter: brightness(.42); }
   }
   .cy-model.is-dealt { animation: cy-deal 900ms cubic-bezier(.5, 0, .2, 1) both; }
+
+  @keyframes cy-draw {
+    0%   { transform: translate(10.4%, 4.9%) rotate(6.4deg) scale(.912);
+           z-index: 1; opacity: .72; filter: brightness(.42); }
+    42%  { transform: translate(-16%, 2%) rotate(-5deg) scale(.95);
+           z-index: 4; opacity: .85; filter: brightness(.55); }
+    68%  { transform: translate(-30%, -7%) rotate(-12deg) scale(1.03);
+           z-index: 4; opacity: 1; filter: brightness(1.05); }
+    100% { transform: none; z-index: 4; opacity: 1; filter: none; }
+  }
+  .cy-model.is-drawn { animation: cy-draw 900ms cubic-bezier(.5, 0, .2, 1) both; }
+
+  /* the deck is grabbable; the top card tracks the finger and snaps on release */
+  .deck { touch-action: pan-y; cursor: grab; }
+  .deck.is-dragging { cursor: grabbing; }
+  .deck.is-dragging .cy-model[data-pos="0"] { transition: none; }
   .cy-model > svg.plates { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* 10px in from every card edge with a 20px radius — expressed in em so it
+     holds when the card scales down on a phone */
   .cy-model .shot {
-    position: absolute; left: 3.2%; top: 16.97%; width: 93.6%; height: 48.4%;
+    position: absolute; left: 1em; right: 1em; top: 16.97%; height: 48.4%;
     overflow: hidden; background: hsl(var(--ink));
-    border-radius: 15.8% / 7.6%;
+    border-radius: 2em;
     box-shadow: 0 0 0 1px hsl(var(--foreground));
   }
   .cy-model .shot .android {
-    position: absolute; left: 2.807%; top: 15.625%; width: 94.035%; height: 83.333%;
-    border-radius: 16.8% / 18.75%; display: block;
-    background: var(--img-android) center / cover no-repeat;
+    position: absolute; inset: 0; display: block;
+    background: var(--img-android) bottom center / contain no-repeat;
   }
   .cy-model .row {
     position: absolute; left: 9.5%; right: 6.5%; top: 68.7%; height: 9.6%;

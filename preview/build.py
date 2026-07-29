@@ -26,4 +26,10 @@ for token, name in (("__ROBOT__", "robot.png"), ("__ANDROID__", "android.png"), 
     html = html.replace(token, data_uri(ROOT / "public" / "img" / name, "image/png"))
 
 out.write_text(html)
-print(f"built {out.relative_to(ROOT)} — {out.stat().st_size / 1024:.0f} KB")
+
+# GitHub Pages serves the same self-contained page, so the live site needs no build step
+pages = ROOT / "docs" / "index.html"
+pages.parent.mkdir(exist_ok=True)
+pages.write_text(html)
+
+print(f"built {out.relative_to(ROOT)} and {pages.relative_to(ROOT)} — {out.stat().st_size / 1024:.0f} KB")

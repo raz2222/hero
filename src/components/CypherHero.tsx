@@ -16,33 +16,43 @@ import "@/components/CypherHero.css";
  * • >= 1024px  a 1440x816 stage scaled by `--s`, so the desktop composition is
  *              exact at any width. `--s` is set in JS because CSS cannot divide
  *              a length by a length to produce a unitless number.
- * • <  1024px  the same card components reflow into a fluid single column.
+ * • <  1024px  one non-scrolling frame pinned to 100dvh.
  *
- * Motion
- * ------
- * Entrance uses the independent `translate`/`scale` properties; pointer
- * parallax owns `transform`, so the two never overwrite each other. Everything
- * collapses under `prefers-reduced-motion`, which also stops the autoplay.
+ * The deck
+ * --------
+ * Three real cards are stacked, each carrying its own colour, photo, name, copy,
+ * code and barcode. Advancing rotates the deck — the top card is pulled off,
+ * dips behind and slots in at the back — and the render behind the hero plus the
+ * headline follow whichever card is now on top.
  */
 
-const MODELS = [
+const UNITS = [
   {
     name: "Model S712X",
     code: "2145",
-    blurb: "Our latest generation security androids, used to protect and serve.",
     seed: 7,
+    accent: "#7199fe",
+    eyebrow: "The future is now",
+    lines: ["Maximize protection", "and safety with", "Cypher lines cyber", "security androids"],
+    blurb: "Our latest generation security androids, used to protect and serve.",
   },
   {
     name: "Model R408V",
     code: "6390",
-    blurb: "Perimeter reconnaissance unit with silent pursuit and 360° threat mapping.",
     seed: 23,
+    accent: "#5fd9c8",
+    eyebrow: "Built for the perimeter",
+    lines: ["Map every threat", "before it breaches", "the fence line with", "Cypher recon units"],
+    blurb: "Perimeter reconnaissance unit with silent pursuit and 360° threat mapping.",
   },
   {
     name: "Model K220D",
     code: "8874",
-    blurb: "Close-protection android tuned for crowd density and rapid extraction.",
     seed: 91,
+    accent: "#b79cff",
+    eyebrow: "Made for the crowd",
+    lines: ["Move your people", "through any crowd", "with Cypher close", "protection androids"],
+    blurb: "Close-protection android tuned for crowd density and rapid extraction.",
   },
 ] as const;
 
@@ -51,9 +61,9 @@ const NAV = [
   { label: "About us", href: "#about" },
 ] as const;
 
-const SLIDE_MS = 6000;
-/** One full edge-turn of the card; the content is exchanged at the halfway point. */
-const TURN_MS = 900;
+/** One full deal; must match the `cy-deal` duration in CypherHero.css. */
+const DEAL_MS = 900;
+const DWELL_MS = 6000;
 
 /** Deterministic bar widths per unit, so every model carries its own code. */
 function bars(seed: number) {
@@ -104,46 +114,61 @@ function SearchBar({ className, style }: Slot) {
   );
 }
 
-/* ------------------------------------------------------------------ cards */
+function RobotLayers({ front, label }: { front: number; label?: string }) {
+  return (
+    <div
+      className="robot-layer"
+      role={label ? "img" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+    >
+      {UNITS.map((u, i) => (
+        <i key={u.code} className={`robot ${i === front ? "is-active" : ""}`} data-slide={i} />
+      ))}
+    </div>
+  );
+}
 
-function ModelCard({ className, style }: Slot) {
+/* ------------------------------------------------------------------- deck */
+
+/** Owns the deck order so the robot and the headline can follow the top card. */
+function useDeck() {
   const reduced = usePrefersReducedMotion();
-  const [index, setIndex] = useState(0);
-  const [swapping, setSwapping] = useState(false);
+  const [front, setFront] = useState(0);
+  const [dealt, setDealt] = useState<number | null>(null);
   const [paused, setPaused] = useState(false);
-  const [visible, setVisible] = useState(true);
-  const deck = useRef<HTMLDivElement>(null);
-  const busy = useRef(false);
-  const timers = useRef<number[]>([]);
-  const indexRef = useRef(index);
-  indexRef.current = index;
+  const queue = useRef(0);
+  const frontRef = useRef(front);
+  frontRef.current = front;
 
-  const model = MODELS[index];
-
-  // The card turns on its edge and the content is exchanged at the halfway
-  // point, while it is side-on — so the swap itself is never seen.
-  const show = useCallback((next: number) => {
-    if (busy.current) return;
-    busy.current = true;
-    setSwapping(true);
-    timers.current.push(
-      window.setTimeout(() => setIndex(((next % MODELS.length) + MODELS.length) % MODELS.length), TURN_MS / 2),
-      window.setTimeout(() => {
-        setSwapping(false);
-        busy.current = false;
-      }, TURN_MS),
-    );
+  const next = useCallback(() => {
+    setDealt((current) => (current === null ? frontRef.current : current));
+    setFront((f) => (f + 1) % UNITS.length);
   }, []);
 
-  useEffect(() => () => timers.current.forEach(window.clearTimeout), []);
+  const onDealEnd = useCallback(() => {
+    setDealt(null);
+    if (queue.current > 0) {
+      queue.current -= 1;
+      window.setTimeout(next, 0);
+    }
+  }, [next]);
 
-  // Autoplay yields to the reader: hover, keyboard focus, a hidden tab or a
-  // card scrolled out of view all pause it.
+  const goTo = useCallback(
+    (i: number) => {
+      const steps = (i - frontRef.current + UNITS.length) % UNITS.length;
+      if (!steps) return;
+      queue.current += steps - 1;
+      next();
+    },
+    [next],
+  );
+
   useEffect(() => {
-    if (reduced || paused || !visible) return;
-    const t = window.setInterval(() => show(indexRef.current + 1), SLIDE_MS);
+    if (reduced || paused || dealt !== null) return;
+    const t = window.setInterval(next, DWELL_MS);
     return () => window.clearInterval(t);
-  }, [reduced, paused, visible, show]);
+  }, [reduced, paused, dealt, next]);
 
   useEffect(() => {
     const onVisibility = () => setPaused(document.hidden);
@@ -151,109 +176,128 @@ function ModelCard({ className, style }: Slot) {
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
+  return {
+    front,
+    dealt,
+    dealing: dealt !== null,
+    next,
+    goTo,
+    onDealEnd,
+    pause: useCallback(() => setPaused(true), []),
+    resume: useCallback(() => setPaused(false), []),
+  };
+}
+
+type DeckApi = ReturnType<typeof useDeck>;
+
+function Deck({ className, style, deck }: Slot & { deck: DeckApi }) {
+  const { front, dealt, dealing, next, goTo, onDealEnd, pause, resume } = deck;
+  const box = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const el = deck.current;
+    const el = box.current;
     if (!el || !("IntersectionObserver" in window)) return;
-    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: 0.25 });
+    const io = new IntersectionObserver(([entry]) => (entry.isIntersecting ? resume() : pause()), {
+      threshold: 0.25,
+    });
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [pause, resume]);
+
+  // A backgrounded tab throttles timers hard, so the deal is cleaned up on
+  // animationend, with a timer only as a safety net.
+  useEffect(() => {
+    if (!dealing) return;
+    const t = window.setTimeout(onDealEnd, DEAL_MS + 400);
+    return () => window.clearTimeout(t);
+  }, [dealing, onDealEnd]);
 
   return (
     <div
-      ref={deck}
-      className={`deck ${swapping ? "is-dealing" : ""} ${className ?? ""}`}
+      ref={box}
+      className={`deck ${dealing ? "is-dealing" : ""} ${className ?? ""}`}
       style={style}
-      onPointerEnter={() => setPaused(true)}
-      onPointerLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}
+      onPointerEnter={pause}
+      onPointerLeave={resume}
+      onFocus={pause}
+      onBlur={resume}
     >
-      {/* the rest of the deck, peeking out behind the live card */}
-      <i className="ghost" aria-hidden="true" />
-      <i className="ghost" aria-hidden="true" />
+      <span className="cy-sr" aria-live="polite">
+        {`${UNITS[front].name} — ${UNITS[front].eyebrow}`}
+      </span>
 
-      <article className={`cy-model ${swapping ? "is-swapping" : ""}`}>
-        <span className="cy-sr" aria-live="polite">
-          {`${model.name} — ${model.blurb}`}
-        </span>
-
-        <svg className="plates" viewBox="0 0 285 595" aria-hidden="true">
-          <path
-            d="M45 1h65c28 0 33 51 68 51h61a44 44 0 0 1 44 44v453a44 44 0 0 1-44 44H45a44 44 0 0 1-44-44V45A44 44 0 0 1 45 1Z"
-            fill="hsl(var(--plate))"
-            stroke="hsl(var(--foreground))"
-            strokeWidth="2"
-          />
-          <path
-            d="M45 46.5h65c28 0 33 51 68 51h61a44.5 44.5 0 0 1 44.5 44.5v325H.5V91A44.5 44.5 0 0 1 45 46.5Z"
-            fill="hsl(var(--primary))"
-            stroke="hsl(var(--foreground))"
-            strokeWidth="1"
-          />
-        </svg>
-
-        <div className="shot" role="img" aria-label={model.name}>
-          {MODELS.map((m, i) => (
-            <i key={m.code} className={`android ${i === index ? "is-active" : ""}`} data-slide={i} />
-          ))}
-          <i className="scan" aria-hidden="true" />
-        </div>
-
-        <div className="row">
-          <h3>
-            {/* re-keying replays the CSS swap animation — no timers to keep in sync */}
-            <span className="swap">
-              <span key={model.code}>{model.name}</span>
-            </span>
-          </h3>
-          <button type="button" onClick={() => show(index + 1)} aria-label="Next model">
-            <ArrowDownRight strokeWidth={1.6} />
-          </button>
-        </div>
-
-        <div className="dots" role="tablist" aria-label="Choose a model">
-          {MODELS.map((m, i) => (
-            <button
-              key={m.code}
-              type="button"
-              role="tab"
-              className={i === index ? "on" : undefined}
-              aria-selected={i === index}
-              aria-label={`Model ${i + 1} of ${MODELS.length}`}
-              onClick={() => show(i)}
+      {UNITS.map((u, i) => (
+        <article
+          key={u.code}
+          className={`cy-model ${dealt === i ? "is-dealt" : ""}`}
+          data-pos={(i - front + UNITS.length) % UNITS.length}
+          style={{ "--accent": u.accent } as React.CSSProperties}
+          onAnimationEnd={dealt === i ? onDealEnd : undefined}
+        >
+          <svg className="plates" viewBox="0 0 285 595" aria-hidden="true">
+            <path
+              d="M45 1h65c28 0 33 51 68 51h61a44 44 0 0 1 44 44v453a44 44 0 0 1-44 44H45a44 44 0 0 1-44-44V45A44 44 0 0 1 45 1Z"
+              fill="hsl(var(--plate))"
+              stroke="hsl(var(--foreground))"
+              strokeWidth="2"
             />
-          ))}
-        </div>
-
-        <p className="blurb">
-          <span className="swap">
-            <span key={model.code}>{model.blurb}</span>
-          </span>
-        </p>
-
-        <div className="code">
-          <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
-            <g fill="hsl(var(--ink))">
-              {bars(model.seed).map(({ x, w }) => (
-                <rect key={x} x={x} width={w} height="30" />
-              ))}
-            </g>
+            <path
+              d="M45 46.5h65c28 0 33 51 68 51h61a44.5 44.5 0 0 1 44.5 44.5v325H.5V91A44.5 44.5 0 0 1 45 46.5Z"
+              fill="var(--accent)"
+              stroke="hsl(var(--foreground))"
+              strokeWidth="1"
+            />
           </svg>
-          <b>
-            <span className="swap">
-              <span key={model.code}>
-                Code
-                <br />
-                {model.code}
-              </span>
-            </span>
-          </b>
-        </div>
-      </article>
+
+          <div className="shot" role="img" aria-label={u.name}>
+            <i className="android" data-slide={i} />
+            <i className="scan" aria-hidden="true" />
+          </div>
+
+          <div className="row">
+            <h3>{u.name}</h3>
+            <button type="button" onClick={next} aria-label="Next model">
+              <ArrowDownRight strokeWidth={1.6} />
+            </button>
+          </div>
+
+          <div className="dots" role="tablist" aria-label="Choose a model">
+            {UNITS.map((d, k) => (
+              <button
+                key={d.code}
+                type="button"
+                role="tab"
+                className={k === i ? "on" : undefined}
+                aria-selected={k === i}
+                aria-label={`Model ${k + 1} of ${UNITS.length}`}
+                onClick={() => goTo(k)}
+              />
+            ))}
+          </div>
+
+          <p className="blurb">{u.blurb}</p>
+
+          <div className="code">
+            <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
+              <g fill="hsl(var(--ink))">
+                {bars(u.seed).map(({ x, w }) => (
+                  <rect key={x} x={x} width={w} height="30" />
+                ))}
+              </g>
+            </svg>
+            <b>
+              Code
+              <br />
+              {u.code}
+            </b>
+          </div>
+        </article>
+      ))}
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ cards */
 
 function NewsCard({ className, style }: Slot) {
   return (
@@ -317,6 +361,8 @@ export default function CypherHero() {
   const wrap = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
+  const desktop = useDeck();
+  const mobile = useDeck();
 
   // Keep the 1440-wide stage filling the viewport, capped so the composition
   // never outgrows an ultrawide screen.
@@ -364,6 +410,9 @@ export default function CypherHero() {
     };
   }, [reduced]);
 
+  const unit = UNITS[desktop.front];
+  const mobileUnit = UNITS[mobile.front];
+
   return (
     <section className="cy">
       {/* ───────────────────────────────────────── desktop: exact stage ── */}
@@ -373,9 +422,7 @@ export default function CypherHero() {
             <Backdrop />
           </div>
 
-          <div className="robot-layer">
-            <i className="robot" role="img" aria-label="Cypher cyber-security android" />
-          </div>
+          <RobotLayers front={desktop.front} label="Cypher cyber-security android" />
 
           <span className="cy-mark" style={{ left: 966, top: 171, width: 25, height: 25 }}>
             <i />
@@ -402,12 +449,15 @@ export default function CypherHero() {
           </nav>
           <SearchBar className="hd-search" />
 
-          <ModelCard className="st-model" />
+          <Deck className="st-model" deck={desktop} />
 
-          <span className="st-eyebrow">The future is now</span>
+          {/* re-keying replays the CSS reveal, so the copy follows the top card */}
+          <span key={`eyebrow-${desktop.front}`} className="st-eyebrow is-swap">
+            {unit.eyebrow}
+          </span>
           <i className="st-rule" />
-          <h1 className="st-h1">
-            {["Maximize protection", "and safety with", "Cypher lines cyber", "security androids"].map((line) => (
+          <h1 key={`headline-${desktop.front}`} className="st-h1 is-swap">
+            {unit.lines.map((line) => (
               <span className="ln" key={line}>
                 <span>{line}</span>
               </span>
@@ -419,12 +469,10 @@ export default function CypherHero() {
         </div>
       </div>
 
-      {/* ─────────────────────────────────── mobile / tablet: fluid flow ── */}
+      {/* ─────────────────────────────────── mobile / tablet: one frame ── */}
       <div className="cy-flow">
         <Backdrop withCross={false} />
-        <div className="robot-layer" aria-hidden="true">
-          <i className="robot" />
-        </div>
+        <RobotLayers front={mobile.front} />
 
         <div className="inner">
           <header>
@@ -445,13 +493,13 @@ export default function CypherHero() {
           <SearchBar />
 
           <div className="head">
-            <span className="eyebrow">The future is now</span>
+            <span className="eyebrow">{mobileUnit.eyebrow}</span>
             <i className="rule" />
-            <h1>Maximize protection and safety with Cypher lines cyber security androids</h1>
+            <h1>{mobileUnit.lines.join(" ")}</h1>
           </div>
 
           <div className="stage-row">
-            <ModelCard className="st-model" />
+            <Deck className="st-model" deck={mobile} />
           </div>
           <CpuCard className="st-cpu" />
         </div>

@@ -50,18 +50,37 @@
   .cy-search button svg { width: 2em; height: 2em; }
 
   /* ─────────────────────────────── model card ──────────────────────────── */
-  .deck { position: relative; aspect-ratio: 285 / 595; perspective: 1500px; }
-  .deck .ghost {
-    position: absolute; inset: 0; border-radius: 15.8% / 7.56%;
-    background: hsl(var(--plate)); transform-origin: 50% 100%;
-    transition: transform 700ms cubic-bezier(.22,1,.36,1), opacity 700ms ease;
+  /* Three real cards, stacked. Position in the deck is the only state — each
+     card carries its own colour, photo, name, copy, code and barcode, so the
+     swap is the deck rotating rather than content being retyped in place. */
+  .deck { position: relative; aspect-ratio: 285 / 595; perspective: 1600px; }
+  .cy-model {
+    position: absolute; inset: 0; transform-origin: 50% 62%;
+    transition: transform 820ms cubic-bezier(.22, 1, .36, 1),
+                opacity 820ms ease, filter 820ms ease;
   }
-  .deck .ghost:nth-of-type(1) { transform: translate(2.4%, 1.1%) rotate(1.4deg); opacity: 0.38; }
-  .deck .ghost:nth-of-type(2) { transform: translate(4.7%, 2.1%) rotate(2.7deg); opacity: 0.18; }
-  .deck.is-dealing .ghost:nth-of-type(1) { transform: translate(0.7%, 0.3%) rotate(0.4deg); opacity: 0.5; }
-  .deck.is-dealing .ghost:nth-of-type(2) { transform: translate(2.8%, 1.2%) rotate(1.5deg); opacity: 0.3; }
+  .cy-model[data-pos="0"] { transform: none; z-index: 3; opacity: 1; filter: none; }
+  .cy-model[data-pos="1"] { transform: translate(5.4%, 2.5%) rotate(3.2deg) scale(.955);
+                            z-index: 2; opacity: .9; filter: brightness(.62); }
+  .cy-model[data-pos="2"] { transform: translate(10.4%, 4.9%) rotate(6.4deg) scale(.912);
+                            z-index: 1; opacity: .72; filter: brightness(.42); }
+  .cy-model[data-pos="0"] .dots button,
+  .cy-model[data-pos="0"] [data-next] { pointer-events: auto; }
+  .cy-model .dots button,
+  .cy-model [data-next] { pointer-events: none; }
 
-  .cy-model { position: absolute; inset: 0; z-index: 1; transform-origin: 50% 50%; }
+  /* the front card is pulled off the top, dips behind the stack and slots in
+     at the back — the others simply step forward one place */
+  @keyframes cy-deal {
+    0%   { transform: none; z-index: 4; opacity: 1; filter: none; }
+    32%  { transform: translate(-30%, -7%) rotate(-12deg) scale(1.03);
+           z-index: 4; opacity: 1; filter: brightness(1.05); }
+    58%  { transform: translate(-16%, 2%) rotate(-5deg) scale(.95);
+           z-index: 0; opacity: .85; filter: brightness(.55); }
+    100% { transform: translate(10.4%, 4.9%) rotate(6.4deg) scale(.912);
+           z-index: 1; opacity: .72; filter: brightness(.42); }
+  }
+  .cy-model.is-dealt { animation: cy-deal 900ms cubic-bezier(.5, 0, .2, 1) both; }
   .cy-model > svg.plates { position: absolute; inset: 0; width: 100%; height: 100%; }
   .cy-model .shot {
     position: absolute; left: 0; top: 16.97%; width: 100%; height: 48.4%;
@@ -189,7 +208,24 @@
     right: calc((1440px - var(--vw) / var(--s)) / 2);
   }
   .cy-stage .robot-layer { position: absolute; left: 900px; top: 109px; width: 540px; height: 707px; }
-  .cy-stage .robot { display: block; width: 100%; height: 100%; background: var(--img-robot) center / contain no-repeat; }
+  .cy-stage .robot-layer > .robot { position: absolute; inset: 0; }
+  .robot {
+    display: block; width: 100%; height: 100%;
+    background: var(--img-robot) center / contain no-repeat;
+    opacity: 0; transition: opacity 780ms ease, transform 980ms cubic-bezier(.22,1,.36,1);
+    transform: scale(1.04);
+  }
+  .robot.is-active { opacity: 1; transform: scale(1); }
+  /* one render graded per unit until the other two are shot */
+  .robot[data-slide="1"] { filter: hue-rotate(128deg) saturate(1.15) brightness(1.05); }
+  .robot[data-slide="2"] { filter: hue-rotate(232deg) saturate(1.1) brightness(1.02); }
+
+  .st-h1.is-swap .ln > span { animation: cy-rise 620ms cubic-bezier(.22,1,.36,1) both; }
+  .st-h1.is-swap .ln:nth-child(1) > span { animation-delay: 0ms; }
+  .st-h1.is-swap .ln:nth-child(2) > span { animation-delay: 70ms; }
+  .st-h1.is-swap .ln:nth-child(3) > span { animation-delay: 140ms; }
+  .st-h1.is-swap .ln:nth-child(4) > span { animation-delay: 210ms; }
+  .st-eyebrow.is-swap { animation: cy-slide-l 560ms cubic-bezier(.22,1,.36,1) both; }
   .cy-stage .leader { position: absolute; inset: 0; width: 100%; height: 100%; }
 
   .cy-stage .hd-burger { position: absolute; left: 73px; top: 45px; width: 27px; height: 19px; }
@@ -220,9 +256,9 @@
     position: absolute; right: -16%; top: 0; width: 82%; max-width: 460px;
     aspect-ratio: 540 / 707; pointer-events: none;
   }
+  .cy-flow .robot-layer > .robot { position: absolute; inset: 0; }
+  .cy-flow .robot.is-active { opacity: 0.5; }
   .cy-flow .robot {
-    display: block; width: 100%; height: 100%;
-    background: var(--img-robot) center / contain no-repeat; opacity: 0.5;
     -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 92%);
     mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 92%);
   }
@@ -408,8 +444,6 @@
 
   /* ── carousel ──────────────────────────────────────────────────────── */
   .cy-model .shot { position: absolute; }
-  .cy-model .shot .android { opacity: 0; }
-  .cy-model .shot .android.is-active { opacity: 1; animation: cy-shot-in 760ms cubic-bezier(.22,1,.36,1) both; }
   /* the one Figma photo, graded per model so the three units read apart */
   .cy-model .shot .android[data-slide="1"] { filter: hue-rotate(186deg) saturate(1.25) brightness(1.04); }
   .cy-model .shot .android[data-slide="2"] { filter: hue-rotate(88deg)  saturate(0.85) brightness(1.08); }
@@ -419,22 +453,10 @@
     background: linear-gradient(180deg, transparent, hsl(var(--primary) / 0.55), transparent);
     mix-blend-mode: screen;
   }
-  .cy-model.is-swapping .shot .scan { animation: cy-scan 760ms cubic-bezier(.4,0,.2,1); }
+  .deck.is-dealing .cy-model[data-pos="0"] .scan { animation: cy-scan 820ms cubic-bezier(.4,0,.2,1) 120ms; }
 
   /* the whole card turns on its edge; the content is exchanged at the midpoint,
      while the card is side-on and nothing is visible to give the swap away */
-  @keyframes cy-card-turn {
-    0%   { transform: rotateY(0deg) scale(1);        filter: brightness(1); }
-    46%  { transform: rotateY(-88deg) scale(0.93);   filter: brightness(0.45); }
-    54%  { transform: rotateY(88deg) scale(0.93);    filter: brightness(0.45); }
-    100% { transform: rotateY(0deg) scale(1);        filter: brightness(1); }
-  }
-  .cy-model.is-swapping { animation: cy-card-turn 900ms cubic-bezier(.62,0,.38,1); }
-
-  .cy-model .swap { display: inline-block; overflow: hidden; vertical-align: bottom; }
-  .cy-model .swap > span { display: block; animation: cy-swap-in 560ms cubic-bezier(.22,1,.36,1) both; }
-  .cy-model .blurb .swap,
-  .cy-model .blurb .swap > span { display: block; }
 
   .cy-model .dots button {
     padding: 0; background: none; cursor: pointer; box-sizing: border-box;
@@ -444,7 +466,7 @@
   .cy-model .dots button.on { background: hsl(var(--foreground)); width: 1.9em; border-radius: 999px; }
 
   .cy-model .row button svg { transition: rotate 420ms cubic-bezier(.22,1,.36,1); }
-  .cy-model.is-swapping .row button svg { rotate: 360deg; }
+  .deck.is-dealing .cy-model[data-pos="0"] .row button svg { rotate: 360deg; }
 
   /* ── reduced motion: keep the product swap, drop the movement ──────── */
   @media (prefers-reduced-motion: reduce) {
@@ -467,7 +489,5 @@
 
 
   /* screen-reader-only announcement for the model swap */
-  .cy-sr {
-    position: absolute; width: 1px; height: 1px; overflow: hidden;
-    clip: rect(0 0 0 0); white-space: nowrap;
-  }
+  .cy-sr { position: absolute; width: 1px; height: 1px; overflow: hidden;
+           clip: rect(0 0 0 0); white-space: nowrap; }

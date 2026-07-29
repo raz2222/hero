@@ -30,13 +30,36 @@ Read off the Figma layers rather than estimated from a screenshot:
   its top edge at (635,460); features group 263×188 at (1017,380); robot 637×707 at (900,109),
   clipped by the frame to 540×707.
 
+## Motion
+
+- **Entrance** — a staggered load sequence: header drops in, the rule draws out, the
+  headline rises line by line, the three cards lift, the robot markers pop and the leader
+  line draws itself.
+- **Ambient** — the robot floats slowly, the markers pulse a halo ring.
+- **Pointer parallax** — the stage reads the cursor and moves each layer at its own depth.
+- **Micro-interactions** — search focus ring, nav underline wipe, button lifts, burger stagger.
+- Entrance animates the independent `translate`/`scale` properties while parallax owns
+  `transform`, so the two never overwrite each other. Everything runs on the compositor.
+- `prefers-reduced-motion: reduce` collapses all of it and stops the carousel autoplay.
+
+## Model carousel
+
+The product card cycles three units (S712X / R408V / K220D). Each swap changes the photo,
+name, blurb, product code and barcode together. Autoplay runs every 6s and yields to the
+reader — hover, keyboard focus, a hidden tab or a card scrolled out of view all pause it.
+Dots are real tabs, and the model name is announced through a polite live region.
+
+> The Figma file ships one android render, so the three units are the same photo graded
+> per model. Swap in real renders at `public/img/` when you have them.
+
 ## Responsive strategy
 
 - **≥1024px** — a 1440×816 stage scaled by `--s` (`min(width/1440, 1.3334)`), so the desktop
   composition is exact at any width. `--s` is set in JS because CSS cannot divide a length by a
   length to produce a unitless number.
-- **<1024px** — the same card components reflow into a fluid single column; the robot becomes a
-  masked background element.
+- **<1024px** — one non-scrolling frame pinned to `100dvh`. The news card is dropped, the
+  fixed rows take what they need and the model card absorbs the remaining height, with its
+  type scaling through container query units so it stays in proportion on any phone.
 - Images are content, not structure: they keep their aspect ratio and are only ever cropped.
 
 ## Running it

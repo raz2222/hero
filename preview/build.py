@@ -10,12 +10,6 @@ import base64
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SCRATCH = pathlib.Path(
-    "/private/tmp/claude-501/-Users-raz-Desktop-Claude-Projects-hero/"
-    "90fe219c-7a95-4f9e-9b0a-8b3f8eaede91/scratchpad"
-)
-
-
 def data_uri(path: pathlib.Path, mime: str) -> str:
     return f"data:{mime};base64," + base64.b64encode(path.read_bytes()).decode()
 
@@ -24,7 +18,10 @@ src = ROOT / "preview" / "cypher-hero.html"
 out = ROOT / "preview" / "cypher-hero.build.html"
 
 html = src.read_text()
-html = html.replace("__JOST_B64__", (SCRATCH / "jost-latin.b64").read_text().strip())
+html = html.replace(
+    "__JOST_B64__",
+    base64.b64encode((ROOT / "public" / "fonts" / "jost-latin.woff2").read_bytes()).decode(),
+)
 for token, name in (("__ROBOT__", "robot.png"), ("__ANDROID__", "android.png"), ("__CPU__", "cpu.png")):
     html = html.replace(token, data_uri(ROOT / "public" / "img" / name, "image/png"))
 

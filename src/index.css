@@ -40,6 +40,11 @@
 
     --radius: 0.75rem;
 
+    /* Figma exports, referenced once so the CSS owns every image. */
+    --img-robot: url("/img/robot.png");
+    --img-android: url("/img/android.png");
+    --img-cpu: url("/img/cpu.png");
+
     --font-sans: "Jost", "Futura", "Avenir Next", "Century Gothic", system-ui, sans-serif;
   }
 

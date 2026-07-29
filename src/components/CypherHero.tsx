@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 
 import { CypherMark } from "@/components/CypherMark";
@@ -11,37 +11,78 @@ import "@/components/CypherHero.css";
  * frame `Desktop - 1` (1440x816). Every number in CypherHero.css is the value
  * read off that frame.
  *
- * Layout strategy
- * ---------------
- * • >= 1024px  a 1440x816 stage is scaled by `--s`, so the desktop composition
- *              is exact at any width. `--s` is set in JS because CSS cannot
- *              divide a length by a length to produce a unitless number.
- * • <  1024px  the same card components reflow into a fluid single column;
- *              the robot becomes a masked background element.
+ * Layout
+ * ------
+ * • >= 1024px  a 1440x816 stage scaled by `--s`, so the desktop composition is
+ *              exact at any width. `--s` is set in JS because CSS cannot divide
+ *              a length by a length to produce a unitless number.
+ * • <  1024px  the same card components reflow into a fluid single column.
  *
- * Images are content, never structural: each one keeps its aspect ratio and is
- * only ever cropped (object-cover), never stretched.
+ * Motion
+ * ------
+ * Entrance uses the independent `translate`/`scale` properties; pointer
+ * parallax owns `transform`, so the two never overwrite each other. Everything
+ * collapses under `prefers-reduced-motion`, which also stops the autoplay.
  */
 
-const IMG = {
-  robot: "/img/robot.png",
-  android: "/img/android.png",
-  cpu: "/img/cpu.png",
-} as const;
+const MODELS = [
+  {
+    name: "Model S712X",
+    code: "2145",
+    blurb: "Our latest generation security androids, used to protect and serve.",
+    seed: 7,
+  },
+  {
+    name: "Model R408V",
+    code: "6390",
+    blurb: "Perimeter reconnaissance unit with silent pursuit and 360° threat mapping.",
+    seed: 23,
+  },
+  {
+    name: "Model K220D",
+    code: "8874",
+    blurb: "Close-protection android tuned for crowd density and rapid extraction.",
+    seed: 91,
+  },
+] as const;
 
 const NAV = [
   { label: "Models", href: "#models" },
   { label: "About us", href: "#about" },
 ] as const;
 
-const BARCODE = Array.from({ length: 44 }, (_, i) => ({
-  x: i * 3.5,
-  w: i % 3 === 0 ? 2.1 : i % 2 === 0 ? 1.4 : 0.8,
-}));
+const SLIDE_MS = 6000;
+const SWAP_MS = 780;
+
+/** Deterministic bar widths per unit, so every model carries its own code. */
+function bars(seed: number) {
+  const out: { x: number; w: number }[] = [];
+  let s = seed >>> 0;
+  for (let i = 0; i < 44; i += 1) {
+    s = (s * 1103515245 + 12345) >>> 0;
+    const r = s % 3;
+    out.push({ x: i * 3.5, w: r === 0 ? 2.1 : r === 1 ? 1.4 : 0.8 });
+  }
+  return out;
+}
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduced(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return reduced;
+}
 
 /* ------------------------------------------------------------------ atoms */
 
-function Burger({ className, style }: { className?: string; style?: React.CSSProperties }) {
+type Slot = { className?: string; style?: React.CSSProperties };
+
+function Burger({ className, style }: Slot) {
   return (
     <span className={`cy-burger ${className ?? ""}`} style={style} aria-hidden="true">
       <i />
@@ -51,7 +92,7 @@ function Burger({ className, style }: { className?: string; style?: React.CSSPro
   );
 }
 
-function SearchBar({ className, style }: { className?: string; style?: React.CSSProperties }) {
+function SearchBar({ className, style }: Slot) {
   return (
     <form className={`cy-search ${className ?? ""}`} style={style} onSubmit={(e) => e.preventDefault()}>
       <input type="search" placeholder="Search" aria-label="Search" />
@@ -64,9 +105,67 @@ function SearchBar({ className, style }: { className?: string; style?: React.CSS
 
 /* ------------------------------------------------------------------ cards */
 
-function ModelCard({ className, style }: { className?: string; style?: React.CSSProperties }) {
+function ModelCard({ className, style }: Slot) {
+  const reduced = usePrefersReducedMotion();
+  const [index, setIndex] = useState(0);
+  const [swapping, setSwapping] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [visible, setVisible] = useState(true);
+  const card = useRef<HTMLElement>(null);
+
+  const model = MODELS[index];
+
+  const show = useCallback((next: number) => {
+    setIndex(((next % MODELS.length) + MODELS.length) % MODELS.length);
+    setSwapping(true);
+  }, []);
+
+  // Clear the swap flag once the transition has played out.
+  useEffect(() => {
+    if (!swapping) return;
+    const t = window.setTimeout(() => setSwapping(false), SWAP_MS);
+    return () => window.clearTimeout(t);
+  }, [swapping, index]);
+
+  // Autoplay yields to the reader: hover, keyboard focus, a hidden tab or a
+  // card scrolled out of view all pause it.
+  useEffect(() => {
+    if (reduced || paused || !visible) return;
+    const t = window.setInterval(() => show(indexRef.current + 1), SLIDE_MS);
+    return () => window.clearInterval(t);
+  }, [reduced, paused, visible, show]);
+
+  const indexRef = useRef(index);
+  indexRef.current = index;
+
+  useEffect(() => {
+    const onVisibility = () => setPaused(document.hidden);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
+  useEffect(() => {
+    const el = card.current;
+    if (!el || !("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: 0.25 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
-    <article className={`cy-model ${className ?? ""}`} style={style}>
+    <article
+      ref={card}
+      className={`cy-model ${swapping ? "is-swapping" : ""} ${className ?? ""}`}
+      style={style}
+      onPointerEnter={() => setPaused(true)}
+      onPointerLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
+      <span className="cy-sr" aria-live="polite">
+        {`${model.name} — ${model.blurb}`}
+      </span>
+
       <svg className="plates" viewBox="0 0 285 595" aria-hidden="true">
         <path
           d="M45 1h65c28 0 33 51 68 51h61a44 44 0 0 1 44 44v453a44 44 0 0 1-44 44H45a44 44 0 0 1-44-44V45A44 44 0 0 1 45 1Z"
@@ -82,44 +181,68 @@ function ModelCard({ className, style }: { className?: string; style?: React.CSS
         />
       </svg>
 
-      <div className="shot">
-        <img className="android" src={IMG.android} alt="Cypher security android, model S712X" />
+      <div className="shot" role="img" aria-label={model.name}>
+        {MODELS.map((m, i) => (
+          <i key={m.code} className={`android ${i === index ? "is-active" : ""}`} data-slide={i} />
+        ))}
+        <i className="scan" aria-hidden="true" />
       </div>
 
       <div className="row">
-        <h3>Model S712X</h3>
-        <button type="button" aria-label="View model S712X">
+        <h3>
+          {/* re-keying replays the CSS swap animation — no timers to keep in sync */}
+          <span className="swap">
+            <span key={model.code}>{model.name}</span>
+          </span>
+        </h3>
+        <button type="button" onClick={() => show(index + 1)} aria-label="Next model">
           <ArrowDownRight strokeWidth={1.6} />
         </button>
       </div>
 
-      <div className="dots">
-        <span className="on" />
-        <span />
-        <span />
+      <div className="dots" role="tablist" aria-label="Choose a model">
+        {MODELS.map((m, i) => (
+          <button
+            key={m.code}
+            type="button"
+            role="tab"
+            className={i === index ? "on" : undefined}
+            aria-selected={i === index}
+            aria-label={`Model ${i + 1} of ${MODELS.length}`}
+            onClick={() => show(i)}
+          />
+        ))}
       </div>
 
-      <p className="blurb">Our latest generation security androids, used to protect and serve.</p>
+      <p className="blurb">
+        <span className="swap">
+          <span key={model.code}>{model.blurb}</span>
+        </span>
+      </p>
 
       <div className="code">
         <svg viewBox="0 0 155 30" role="img" aria-label="Product barcode">
           <g fill="hsl(var(--ink))">
-            {BARCODE.map(({ x, w }) => (
+            {bars(model.seed).map(({ x, w }) => (
               <rect key={x} x={x} width={w} height="30" />
             ))}
           </g>
         </svg>
         <b>
-          Code
-          <br />
-          2145
+          <span className="swap">
+            <span key={model.code}>
+              Code
+              <br />
+              {model.code}
+            </span>
+          </span>
         </b>
       </div>
     </article>
   );
 }
 
-function NewsCard({ className, style }: { className?: string; style?: React.CSSProperties }) {
+function NewsCard({ className, style }: Slot) {
   return (
     <article className={`cy-news ${className ?? ""}`} style={style}>
       <div className="body">
@@ -135,7 +258,7 @@ function NewsCard({ className, style }: { className?: string; style?: React.CSSP
   );
 }
 
-function CpuCard({ className, style }: { className?: string; style?: React.CSSProperties }) {
+function CpuCard({ className, style }: Slot) {
   return (
     <article className={`cy-cpu ${className ?? ""}`} style={style}>
       <div className="glass">
@@ -143,7 +266,7 @@ function CpuCard({ className, style }: { className?: string; style?: React.CSSPr
           <h3>Highest CPU capacity in the market</h3>
           <span className="mini">Read More</span>
         </div>
-        <img className="chip" src={IMG.cpu} alt="Circuit board with a Cypher processor" />
+        <i className="chip" role="img" aria-label="Circuit board with a Cypher processor" />
       </div>
       <button className="go" type="button" aria-label="Read more about CPU capacity">
         <ArrowRight strokeWidth={2} />
@@ -178,12 +301,14 @@ function Backdrop({ withCross = true }: { withCross?: boolean }) {
 /* ------------------------------------------------------------------- hero */
 
 export default function CypherHero() {
+  const wrap = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
+  const reduced = usePrefersReducedMotion();
 
-  // Keep the 1440-wide stage filling the viewport. Capped at 1.3334 so the
-  // composition never outgrows an ultrawide screen.
+  // Keep the 1440-wide stage filling the viewport, capped so the composition
+  // never outgrows an ultrawide screen.
   useEffect(() => {
-    const el = stage.current;
+    const el = wrap.current;
     if (!el) return;
     const fit = () => {
       const w = el.clientWidth || window.innerWidth;
@@ -196,16 +321,48 @@ export default function CypherHero() {
     return () => ro.disconnect();
   }, []);
 
+  // Pointer parallax, pointer devices only.
+  useEffect(() => {
+    const box = wrap.current;
+    const el = stage.current;
+    if (!box || !el || reduced || !window.matchMedia("(hover: hover)").matches) return;
+
+    let frame = 0;
+    const move = (e: PointerEvent) => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const r = box.getBoundingClientRect();
+        el.style.setProperty("--px", String(((e.clientX - r.left) / r.width - 0.5) * 2));
+        el.style.setProperty("--py", String(((e.clientY - r.top) / r.height - 0.5) * 2));
+      });
+    };
+    const reset = () => {
+      el.style.setProperty("--px", "0");
+      el.style.setProperty("--py", "0");
+    };
+
+    box.addEventListener("pointermove", move, { passive: true });
+    box.addEventListener("pointerleave", reset);
+    return () => {
+      cancelAnimationFrame(frame);
+      box.removeEventListener("pointermove", move);
+      box.removeEventListener("pointerleave", reset);
+    };
+  }, [reduced]);
+
   return (
     <section className="cy">
       {/* ───────────────────────────────────────── desktop: exact stage ── */}
-      <div className="cy-stage-wrap" ref={stage}>
-        <div className="cy-stage">
+      <div className="cy-stage-wrap" ref={wrap}>
+        <div className="cy-stage" ref={stage}>
           <div className="bleed">
             <Backdrop />
           </div>
 
-          <img className="robot" src={IMG.robot} alt="Cypher cyber-security android" />
+          <div className="robot-layer">
+            <i className="robot" role="img" aria-label="Cypher cyber-security android" />
+          </div>
 
           <span className="cy-mark" style={{ left: 966, top: 171, width: 25, height: 25 }}>
             <i />
@@ -236,7 +393,13 @@ export default function CypherHero() {
 
           <span className="st-eyebrow">The future is now</span>
           <i className="st-rule" />
-          <h1 className="st-h1">Maximize protection and safety with Cypher lines cyber security androids</h1>
+          <h1 className="st-h1">
+            {["Maximize protection", "and safety with", "Cypher lines cyber", "security androids"].map((line) => (
+              <span className="ln" key={line}>
+                <span>{line}</span>
+              </span>
+            ))}
+          </h1>
           <NewsCard className="st-news" />
 
           <CpuCard className="st-cpu" />
@@ -246,7 +409,9 @@ export default function CypherHero() {
       {/* ─────────────────────────────────── mobile / tablet: fluid flow ── */}
       <div className="cy-flow">
         <Backdrop withCross={false} />
-        <img className="robot" src={IMG.robot} alt="" aria-hidden="true" />
+        <div className="robot-layer" aria-hidden="true">
+          <i className="robot" />
+        </div>
 
         <div className="inner">
           <header>
@@ -264,16 +429,17 @@ export default function CypherHero() {
             </nav>
           </header>
 
-          <SearchBar style={{ fontSize: 10 }} />
+          <SearchBar />
 
-          <div>
+          <div className="head">
             <span className="eyebrow">The future is now</span>
             <i className="rule" />
             <h1>Maximize protection and safety with Cypher lines cyber security androids</h1>
           </div>
 
-          <ModelCard className="st-model" />
-          <NewsCard className="st-news" />
+          <div className="stage-row">
+            <ModelCard className="st-model" />
+          </div>
           <CpuCard className="st-cpu" />
         </div>
       </div>

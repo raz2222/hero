@@ -38,6 +38,9 @@
     font-size: 1.4em; letter-spacing: 0.04em; padding-inline-start: 0.15em;
   }
   .cy-search input::placeholder { color: hsl(var(--foreground)); opacity: 1; }
+  .cy-search input { appearance: none; -webkit-appearance: none; line-height: 1.2; }
+  .cy-search input::-webkit-search-decoration,
+  .cy-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
   .cy-search button {
     display: grid; place-items: center; flex: none;
     aspect-ratio: 1; height: 3.885em;
@@ -57,7 +60,8 @@
   }
   .cy-model .shot .android {
     position: absolute; left: 2.807%; top: 15.625%; width: 94.035%; height: 83.333%;
-    border-radius: 16.8% / 18.75%; object-fit: cover; display: block;
+    border-radius: 16.8% / 18.75%; display: block;
+    background: var(--img-android) center / cover no-repeat;
   }
   .cy-model .row {
     position: absolute; left: 9.5%; right: 6.5%; top: 68.7%; height: 9.6%;
@@ -73,8 +77,7 @@
     position: absolute; left: 50%; translate: -50% 0; top: 83.4%;
     display: flex; align-items: center; gap: 0.85em;
   }
-  .cy-model .dots span { width: 0.72em; height: 0.72em; border-radius: 999px; border: 1px solid hsl(var(--foreground)); }
-  .cy-model .dots span.on { background: hsl(var(--foreground)); }
+  .cy-model .dots button { width: 0.72em; height: 0.72em; border-radius: 999px; border: 1px solid hsl(var(--foreground)); }
   .cy-model .blurb {
     position: absolute; left: 9.5%; right: 9%; top: 86.9%; margin: 0;
     color: hsl(var(--ink)); font-size: 0.85em; line-height: 1.35;
@@ -137,7 +140,8 @@
   }
   .cy-cpu .chip {
     width: 9em; height: 9.571em; flex: none;
-    border-radius: 2.143em; object-fit: cover; display: block;
+    border-radius: 2.143em; display: block;
+    background: var(--img-cpu) center / cover no-repeat;
     box-shadow: 0 0 0 1px hsl(var(--foreground));
   }
   .cy-cpu .go {
@@ -151,7 +155,6 @@
   .cy-mark { position: absolute; translate: -50% -50%; display: grid; place-items: center;
              border-radius: 999px; background: hsl(var(--foreground) / 0.25); }
   .cy-mark i { display: block; width: 68%; height: 68%; border-radius: 999px; background: hsl(var(--foreground)); }
-
 
   /* ═════════════════════════════ desktop stage ═════════════════════════ */
   /* --s is a unitless scale factor set by the inline script below (CSS cannot
@@ -174,7 +177,8 @@
     left: calc((1440px - var(--vw) / var(--s)) / 2);
     right: calc((1440px - var(--vw) / var(--s)) / 2);
   }
-  .cy-stage .robot { position: absolute; left: 900px; top: 109px; width: 540px; height: 707px; object-fit: contain; }
+  .cy-stage .robot-layer { position: absolute; left: 900px; top: 109px; width: 540px; height: 707px; }
+  .cy-stage .robot { display: block; width: 100%; height: 100%; background: var(--img-robot) center / contain no-repeat; }
   .cy-stage .leader { position: absolute; inset: 0; width: 100%; height: 100%; }
 
   .cy-stage .hd-burger { position: absolute; left: 73px; top: 45px; width: 27px; height: 19px; }
@@ -194,38 +198,255 @@
   .cy-stage .st-cpu    { position: absolute; left: 1017px; top: 380px; width: 263px; font-size: 14px; }
 
   /* ═════════════════════════════ mobile flow ══════════════════════════ */
-  .cy-flow { position: relative; min-height: 100dvh; }
+  /* One frame, no scrolling: the hero owns exactly 100dvh. Fixed rows take
+     what they need, the model card absorbs whatever height is left, and its
+     type scales with it through container query units. */
+  .cy-flow {
+    position: relative; height: 100dvh; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .cy-flow .robot-layer {
+    position: absolute; right: -16%; top: 0; width: 82%; max-width: 460px;
+    aspect-ratio: 540 / 707; pointer-events: none;
+  }
   .cy-flow .robot {
-    position: absolute; right: -16%; top: 0; width: 82%; max-width: 460px; height: auto;
-    object-fit: contain; opacity: 0.5; pointer-events: none;
+    display: block; width: 100%; height: 100%;
+    background: var(--img-robot) center / contain no-repeat; opacity: 0.5;
     -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 92%);
     mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 92%);
   }
   .cy-flow .inner {
-    position: relative; width: 100%; max-width: 720px; margin-inline: auto;
-    display: flex; flex-direction: column; gap: 2rem;
-    padding: 1.5rem 1.25rem 4rem;
+    position: relative; flex: 1; min-height: 0;
+    width: 100%; max-width: 720px; margin-inline: auto;
+    display: flex; flex-direction: column; gap: clamp(0.45rem, 1.5vh, 1.2rem);
+    padding: clamp(0.7rem, 1.8vh, 1.4rem) 1.25rem clamp(0.7rem, 1.8vh, 1.4rem);
   }
-  .cy-flow header { display: flex; align-items: center; gap: 1rem; }
+  .cy-flow header { flex: none; display: flex; align-items: center; gap: 1rem; }
   .cy-flow header .brand { display: flex; align-items: center; gap: 0.5rem; color: inherit; text-decoration: none; }
   .cy-flow header .brand-mark { width: 26px; height: 26px; flex: none; }
-  .cy-flow header .brand span { font-size: 1.5rem; font-weight: 700; line-height: 1; }
-  .cy-flow header nav { margin-left: auto; display: flex; gap: 2rem; font-size: 0.75rem; font-weight: 600; }
-  @media (max-width: 639px) { .cy-flow header nav { display: none; } }
+  .cy-flow header .brand span { font-size: clamp(1.15rem, 5vw, 1.5rem); font-weight: 700; line-height: 1; }
+  .cy-flow header nav { margin-left: auto; display: flex; gap: 1.5rem; font-size: 0.75rem; font-weight: 600; }
+  @media (max-width: 559px) { .cy-flow header nav { display: none; } }
   .cy-flow header nav a { color: inherit; text-decoration: none; }
-  .cy-flow .eyebrow { display: block; font-size: clamp(0.95rem, 3.4vw, 1rem); }
-  .cy-flow .rule { display: block; margin-top: 0.35rem; width: 190px; max-width: 100%; height: 1px; background: hsl(var(--foreground)); }
-  .cy-flow h1 { margin: 0.75rem 0 0; max-width: 9ch; font-size: clamp(2rem, 8.6vw, 2.5rem); font-weight: 400; line-height: 1.44; }
-  .cy-flow .st-model { width: 100%; max-width: 285px; font-size: clamp(9px, 3vw, 10px); }
-  .cy-flow .st-news  { width: 100%; max-width: 420px; font-size: clamp(13px, 3.6vw, 14px); }
-  .cy-flow .st-cpu   { width: 100%; max-width: 380px; font-size: clamp(13px, 3.6vw, 14px); }
+  .cy-flow .cy-search { flex: none; font-size: clamp(8px, 2.3vw, 10px); }
+  .cy-flow .cy-search input { font-size: 1.25em; }
+  .cy-flow .head { flex: none; }
+  .cy-flow .eyebrow { display: block; font-size: clamp(0.8rem, 2.9vw, 1rem); }
+  .cy-flow .rule { display: block; margin-top: 0.3rem; width: 190px; max-width: 100%; height: 1px; background: hsl(var(--foreground)); }
+  .cy-flow h1 {
+    margin: clamp(0.3rem, 1.2vh, 0.7rem) 0 0; max-width: 19ch;
+    font-size: clamp(1.2rem, 5.2vw, 1.9rem); font-weight: 400; line-height: 1.26;
+  }
+
+  /* the card absorbs the leftover height; cqh keeps its type in proportion */
+  .cy-flow .stage-row {
+    flex: 1; min-height: 0; container-type: size;
+    display: flex; align-items: stretch; justify-content: flex-start;
+  }
+  .cy-flow .st-model {
+    height: min(100cqh, 208.77cqw); width: auto;
+    aspect-ratio: 285 / 595;
+    font-size: max(7.2px, min(1.68cqh, 3.507cqw));
+  }
+
+  /* compact strip, so the features card costs the frame as little as possible */
+  .cy-flow .st-cpu { flex: none; width: 100%; max-width: 330px; font-size: clamp(7.5px, 2.3vw, 10px); }
+  .cy-flow .cy-cpu .glass { height: auto; align-items: center; }
+  .cy-flow .cy-cpu .chip { width: 5.8em; height: 6.2em; }
+  .cy-flow .cy-cpu h3 { font-size: 1.15em; }
+  .cy-flow .cy-cpu .mini { margin-top: 0.7em; }
 
   @media (min-width: 640px) {
-    .cy-flow .robot { right: -8%; width: 62%; opacity: 0.6; }
+    .cy-flow .robot-layer { right: -8%; width: 62%; }
+    .cy-flow .robot { opacity: 0.6; }
     .cy-flow h1 { max-width: 14ch; }
     .cy-flow .inner { padding-inline: 2rem; }
   }
   @media (min-width: 1024px) {
     .cy-stage-wrap { display: block; }
     .cy-flow { display: none; }
+  }
+  /* ══════════════════════════════ motion ═══════════════════════════════ */
+  /* Everything below animates only `opacity`, `translate`, `scale`, `filter`
+     and `transform` so it stays on the compositor. Entrance uses the
+     independent `translate`/`scale` properties; pointer parallax owns
+     `transform` — that way the two never overwrite each other. */
+
+  @keyframes cy-rise    { from { opacity: 0; translate: 0 26px; } to { opacity: 1; translate: 0 0; } }
+  @keyframes cy-drop    { from { opacity: 0; translate: 0 -14px; } to { opacity: 1; translate: 0 0; } }
+  @keyframes cy-slide-l { from { opacity: 0; translate: -22px 0; } to { opacity: 1; translate: 0 0; } }
+  @keyframes cy-line    { from { opacity: 0; scale: 0 1; }        to { opacity: 1; scale: 1 1; } }
+  @keyframes cy-pop     { from { opacity: 0; scale: 0.2; }        to { opacity: 1; scale: 1; } }
+  @keyframes cy-fade    { from { opacity: 0; }                    to { opacity: 1; } }
+  @keyframes cy-halo    { 0%, 100% { box-shadow: 0 0 0 0 hsl(var(--foreground) / 0.28); }
+                          50%      { box-shadow: 0 0 0 7px hsl(var(--foreground) / 0); } }
+  @keyframes cy-float   { 0%, 100% { transform: translate3d(0, 0, 0); }
+                          50%      { transform: translate3d(0, -9px, 0); } }
+  @keyframes cy-dash    { to { stroke-dashoffset: 0; } }
+  @keyframes cy-swap-in { from { opacity: 0; translate: 0 105%; } to { opacity: 1; translate: 0 0; } }
+  @keyframes cy-shot-in { from { opacity: 0; scale: 1.09; filter: blur(6px); }
+                          to   { opacity: 1; scale: 1;    filter: blur(0); } }
+  @keyframes cy-scan    { from { translate: 0 -110%; opacity: 0; }
+                          18%  { opacity: 1; }
+                          to   { translate: 0 700%;  opacity: 0; } }
+
+  /* ── entrance choreography (desktop stage) ─────────────────────────── */
+  .cy-stage > *,
+  .cy-stage .bleed { animation: cy-fade 700ms ease-out both; }
+
+  .cy-stage .hd-burger { animation: cy-drop 620ms cubic-bezier(.22,1,.36,1) 180ms both; }
+  .cy-stage .hd-mark   { animation: cy-drop 620ms cubic-bezier(.22,1,.36,1) 240ms both; }
+  .cy-stage .hd-name   { animation: cy-drop 620ms cubic-bezier(.22,1,.36,1) 300ms both; }
+  .cy-stage .hd-nav    { animation: cy-drop 620ms cubic-bezier(.22,1,.36,1) 360ms both; }
+  .cy-stage .hd-search { animation: cy-drop 700ms cubic-bezier(.22,1,.36,1) 420ms both; }
+
+  .cy-stage .robot-layer { animation: cy-fade 1100ms ease-out 120ms both; }
+  .cy-stage .robot       { animation: cy-float 9s ease-in-out 1.4s infinite; }
+
+  .cy-stage .st-eyebrow { animation: cy-slide-l 640ms cubic-bezier(.22,1,.36,1) 520ms both; }
+  .cy-stage .st-rule    { transform-origin: left center;
+                          animation: cy-line 760ms cubic-bezier(.22,1,.36,1) 600ms both; }
+
+  .st-h1 .ln { display: block; overflow: hidden; }
+  .st-h1 .ln > span { display: block; animation: cy-rise 820ms cubic-bezier(.22,1,.36,1) both; }
+  .st-h1 .ln:nth-child(1) > span { animation-delay: 640ms; }
+  .st-h1 .ln:nth-child(2) > span { animation-delay: 740ms; }
+  .st-h1 .ln:nth-child(3) > span { animation-delay: 840ms; }
+  .st-h1 .ln:nth-child(4) > span { animation-delay: 940ms; }
+
+  .cy-stage .st-model { animation: cy-rise 900ms cubic-bezier(.22,1,.36,1) 700ms both; }
+  .cy-stage .st-news  { animation: cy-rise 900ms cubic-bezier(.22,1,.36,1) 860ms both; }
+  .cy-stage .st-cpu   { animation: cy-rise 900ms cubic-bezier(.22,1,.36,1) 1000ms both; }
+
+  .cy-stage .cy-mark { animation: cy-pop 520ms cubic-bezier(.34,1.56,.64,1) both; }
+  .cy-stage .cy-mark:nth-of-type(1) { animation-delay: 1120ms; }
+  .cy-stage .cy-mark:nth-of-type(2) { animation-delay: 1240ms; }
+  .cy-stage .cy-mark:nth-of-type(3) { animation-delay: 1360ms; }
+  .cy-mark i { animation: cy-halo 3.4s ease-out 2s infinite; }
+  .cy-stage .cy-mark:nth-of-type(2) i { animation-delay: 2.5s; }
+  .cy-stage .cy-mark:nth-of-type(3) i { animation-delay: 3s; }
+
+  .cy-stage .leader line { stroke-dasharray: 200; stroke-dashoffset: 200;
+                           animation: cy-dash 900ms ease-out 1180ms forwards; }
+
+  /* mobile gets the same beats, shorter and shallower */
+  .cy-flow .inner > * { animation: cy-rise 700ms cubic-bezier(.22,1,.36,1) both; }
+  .cy-flow .inner > *:nth-child(1) { animation-delay: 100ms; }
+  .cy-flow .inner > *:nth-child(2) { animation-delay: 200ms; }
+  .cy-flow .inner > *:nth-child(3) { animation-delay: 300ms; }
+  .cy-flow .inner > *:nth-child(4) { animation-delay: 420ms; }
+  .cy-flow .inner > *:nth-child(5) { animation-delay: 520ms; }
+  .cy-flow .inner > *:nth-child(6) { animation-delay: 620ms; }
+  .cy-flow .robot-layer { animation: cy-fade 1200ms ease-out both; }
+
+  /* ── pointer parallax ──────────────────────────────────────────────── */
+  .cy-stage { --px: 0; --py: 0; }
+  .cy-stage .robot-layer,
+  .cy-stage .st-model,
+  .cy-stage .st-news,
+  .cy-stage .st-cpu,
+  .cy-stage .leader,
+  .cy-stage .cy-mark { will-change: transform; transition: transform 600ms cubic-bezier(.22,1,.36,1); }
+  .cy-stage .robot-layer { transform: translate3d(calc(var(--px) * 16px), calc(var(--py) * 11px), 0); }
+  .cy-stage .leader,
+  .cy-stage .cy-mark     { transform: translate3d(calc(var(--px) * 16px), calc(var(--py) * 11px), 0); }
+  .cy-stage .cy-mark     { translate: -50% -50%; }
+  .cy-stage .st-cpu      { transform: translate3d(calc(var(--px) * 9px),  calc(var(--py) * 6px), 0); }
+  .cy-stage .st-model    { transform: translate3d(calc(var(--px) * -11px), calc(var(--py) * -7px), 0); }
+  .cy-stage .st-news     { transform: translate3d(calc(var(--px) * -6px),  calc(var(--py) * -4px), 0); }
+
+  /* ── micro-interactions ────────────────────────────────────────────── */
+  .cy-search { transition: border-color 260ms ease, box-shadow 260ms ease; }
+  .cy-search:focus-within { border-color: hsl(var(--foreground));
+                            box-shadow: 0 0 0 0.35em hsl(var(--foreground) / 0.07); }
+  .cy-search button { transition: scale 260ms cubic-bezier(.34,1.56,.64,1); }
+  .cy-search button svg { transition: translate 260ms cubic-bezier(.22,1,.36,1); }
+  .cy-search button:hover { scale: 1.07; }
+  .cy-search button:hover svg { translate: 0.12em -0.12em; }
+
+  .hd-nav a { position: relative; }
+  .hd-nav a::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -0.35em; height: 1px;
+    background: currentColor; scale: 0 1; transform-origin: right center;
+    transition: scale 320ms cubic-bezier(.22,1,.36,1);
+  }
+  .hd-nav a:hover::after { scale: 1 1; transform-origin: left center; }
+
+  .cy-news .cta,
+  .cy-cpu .go,
+  .cy-model .row button { transition: scale 280ms cubic-bezier(.34,1.56,.64,1), background-color 280ms ease, color 280ms ease; }
+  .cy-news .cta:hover { scale: 1.05; }
+  .cy-cpu .go:hover { scale: 1.12; }
+  .cy-cpu .go svg { transition: translate 280ms cubic-bezier(.22,1,.36,1); }
+  .cy-cpu .go:hover svg { translate: 0.18em 0; }
+  .cy-model .row button:hover { scale: 1.12; background: hsl(var(--foreground)); color: hsl(var(--primary)); }
+
+  .cy-news .body,
+  .cy-cpu .glass { transition: background-color 380ms ease; }
+  .cy-news:hover .body { background: hsl(0 0% 9%); }
+  .cy-cpu:hover .glass { background: hsl(var(--foreground) / 0.18); }
+
+  .cy-burger i { transition: translate 320ms cubic-bezier(.22,1,.36,1), scale 320ms ease; transform-origin: left center; }
+  .cy-burger:hover i:nth-child(1) { translate: 0.14em 0; }
+  .cy-burger:hover i:nth-child(2) { translate: 0.3em 0; }
+  .cy-burger:hover i:nth-child(3) { translate: 0.08em 0; }
+
+  :where(a, button, input):focus-visible {
+    outline: 2px solid hsl(var(--foreground)); outline-offset: 3px; border-radius: 4px;
+  }
+
+  /* ── carousel ──────────────────────────────────────────────────────── */
+  .cy-model .shot { position: absolute; }
+  .cy-model .shot .android { opacity: 0; }
+  .cy-model .shot .android.is-active { opacity: 1; animation: cy-shot-in 760ms cubic-bezier(.22,1,.36,1) both; }
+  /* the one Figma photo, graded per model so the three units read apart */
+  .cy-model .shot .android[data-slide="1"] { filter: hue-rotate(186deg) saturate(1.25) brightness(1.04); }
+  .cy-model .shot .android[data-slide="2"] { filter: hue-rotate(88deg)  saturate(0.85) brightness(1.08); }
+
+  .cy-model .shot .scan {
+    position: absolute; left: 0; right: 0; top: 0; height: 14%; opacity: 0; pointer-events: none;
+    background: linear-gradient(180deg, transparent, hsl(var(--primary) / 0.55), transparent);
+    mix-blend-mode: screen;
+  }
+  .cy-model.is-swapping .shot .scan { animation: cy-scan 760ms cubic-bezier(.4,0,.2,1); }
+
+  .cy-model .swap { display: inline-block; overflow: hidden; vertical-align: bottom; }
+  .cy-model .swap > span { display: block; animation: cy-swap-in 560ms cubic-bezier(.22,1,.36,1) both; }
+  .cy-model .blurb .swap,
+  .cy-model .blurb .swap > span { display: block; }
+
+  .cy-model .dots button {
+    padding: 0; background: none; cursor: pointer; box-sizing: border-box;
+    transition: scale 300ms cubic-bezier(.34,1.56,.64,1), background-color 300ms ease, width 300ms cubic-bezier(.22,1,.36,1);
+  }
+  .cy-model .dots button:hover { scale: 1.35; }
+  .cy-model .dots button.on { background: hsl(var(--foreground)); width: 1.9em; border-radius: 999px; }
+
+  .cy-model .row button svg { transition: rotate 420ms cubic-bezier(.22,1,.36,1); }
+  .cy-model.is-swapping .row button svg { rotate: 360deg; }
+
+  /* ── reduced motion: keep the product swap, drop the movement ──────── */
+  @media (prefers-reduced-motion: reduce) {
+    .cy *,
+    .cy *::before,
+    .cy *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+    .cy-stage .robot-layer,
+    .cy-stage .st-model,
+    .cy-stage .st-news,
+    .cy-stage .st-cpu,
+    .cy-stage .leader,
+    .cy-stage .cy-mark { transform: none !important; }
+    .cy-stage .cy-mark { translate: -50% -50%; }
+  }
+
+
+  /* screen-reader-only announcement for the model swap */
+  .cy-sr {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
   }
